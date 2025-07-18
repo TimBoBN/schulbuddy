@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Benutzerverwaltung - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>👥 Benutzerverwaltung</h2>
+                <a href="{{ url_for('admin.admin_create_user') }}" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Neuen Benutzer erstellen
+                </a>
+            </div>
+            
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="/admin">Admin-Panel</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Benutzerverwaltung</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <!-- Admin-Navigation -->
+    {% include 'admin_nav.html' %}
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">📊 Alle Benutzer ({{ users|length }})</h5>
+                    <div>
+                        <a href="{{ url_for('admin.admin_create_user') }}" class="btn btn-primary me-2">
+                            <i class="fas fa-user-plus me-1"></i>
+                            Neuen Benutzer erstellen
+                        </a>
+                        <a href="/admin" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>
+                            Zurück zum Admin-Panel
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if users %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Benutzername</th>
+                                        <th>E-Mail</th>
+                                        <th>Rolle</th>
+                                        <th>Status</th>
+                                        <th>Erstellt</th>
+                                        <th>Aktionen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in users %}
+                                        <tr>
+                                            <td>{{ user.id }}</td>
+                                            <td>
+                                                <strong>{{ user.username }}</strong>
+                                                {% if user.id == current_user.id %}
+                                                    <span class="badge bg-info ms-2">Das bist du</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ user.email }}</td>
+                                            <td>
+                                                {% if user.is_admin %}
+                                                    <span class="badge bg-warning">🛡️ Admin</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">👤 Benutzer</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if user.is_active %}
+                                                    <span class="badge bg-success">✅ Aktiv</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">❌ Inaktiv</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a href="{{ url_for('admin.admin_edit_user', user_id=user.id) }}" 
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-edit me-1"></i>
+                                                        Bearbeiten
+                                                    </a>
+                                                    {% if user.id != current_user.id %}
+                                                        <form method="POST" action="/admin/delete_user/{{ user.id }}" style="display: inline;">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                                    onclick="return confirm('Benutzer {{ user.username }} wirklich löschen?')">
+                                                                <i class="fas fa-trash me-1"></i>
+                                                                Löschen
+                                                            </button>
+                                                        </form>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted">Keine Benutzer gefunden.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Archiv - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>📦 Archiv</h1>
+                <div>
+                    <small class="text-muted me-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Aufgaben älter als 14 Tage werden automatisch gelöscht
+                    </small>
+                    <a href="/" class="btn btn-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Zurück zum Dashboard
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Archiv-Statistiken -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h3 class="card-title mb-0">{{ archived_tasks|length }}</h3>
+                                    <p class="card-text">Abgearbeitete Aufgaben</p>
+                                </div>
+                                <div class="display-4">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h3 class="card-title mb-0">{{ sorted_months|length }}</h3>
+                                    <p class="card-text">Verschiedene Monate</p>
+                                </div>
+                                <div class="display-4">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if archived_tasks %}
+                <!-- Archiv-Aufgaben gruppiert nach Monat -->
+                {% for month_key in sorted_months %}
+                    {% set month_tasks = tasks_by_month[month_key] %}
+                    {% if month_tasks %}
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-calendar me-2"></i>
+                                    {{ month_tasks[0].month_display }}
+                                    <span class="badge bg-secondary ms-2">{{ month_tasks|length }} Aufgaben</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    {% for item in month_tasks %}
+                                        {% set task = item.task %}
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card task-card archived-task">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <h6 class="card-title mb-0">
+                                                            <i class="fas fa-check-circle text-success me-2"></i>
+                                                            {{ task.title }}
+                                                        </h6>
+                                                        <div>
+                                                            <span class="badge bg-success me-2">Erledigt</span>
+                                                            <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete({{ task.id }}, '{{ task.title }}')" title="Permanent löschen">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="task-meta">
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-book me-1"></i>{{ task.subject }}
+                                                        </small>
+                                                        <small class="text-muted ms-3">
+                                                            <i class="fas fa-tag me-1"></i>
+                                                            {% if task.task_type == 'homework' %}
+                                                                Hausaufgabe
+                                                            {% elif task.task_type == 'exam' %}
+                                                                Klassenarbeit
+                                                            {% elif task.task_type == 'project' %}
+                                                                Projekt
+                                                            {% else %}
+                                                                {{ task.task_type }}
+                                                            {% endif %}
+                                                        </small>
+                                                    </div>
+                                                    
+                                                    {% if task.description %}
+                                                        <p class="card-text mt-2">{{ task.description }}</p>
+                                                    {% endif %}
+                                                    
+                                                    <div class="task-dates mt-2">
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-calendar-plus me-1"></i>
+                                                            Erstellt: {{ task.created_date }}
+                                                        </small>
+                                                        <br>
+                                                        <small class="text-success">
+                                                            <i class="fas fa-check me-1"></i>
+                                                            Erledigt: {{ task.completed_date }}
+                                                        </small>
+                                                        {% if task.due_date %}
+                                                            <br>
+                                                            <small class="text-muted">
+                                                                <i class="fas fa-clock me-1"></i>
+                                                                Fällig war: {{ task.due_date }}
+                                                            </small>
+                                                        {% endif %}
+                                                    </div>
+                                                    
+                                                    {% if task.filename %}
+                                                        <div class="task-attachment mt-2">
+                                                            <small>
+                                                                <i class="fas fa-paperclip me-1"></i>
+                                                                <a href="/static/uploads/{{ task.filename }}" target="_blank" class="text-decoration-none">
+                                                                    {{ task.filename }}
+                                                                </a>
+                                                            </small>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <!-- Keine archivierten Aufgaben -->
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <div class="display-1 text-muted mb-3">
+                            <i class="fas fa-archive"></i>
+                        </div>
+                        <h3 class="text-muted">Noch keine archivierten Aufgaben</h3>
+                        <p class="text-muted">Sobald du Aufgaben erledigst, werden sie hier angezeigt.</p>
+                        <a href="/" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Neue Aufgabe erstellen
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Bestätigungsdialog für einzelne Aufgabe
+function confirmDelete(taskId, taskTitle) {
+    if (confirm(`Möchtest du die Aufgabe "${taskTitle}" wirklich permanent löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden!`)) {
+        // Erstelle verstecktes Formular für POST-Request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/delete_archived_task/${taskId}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Zeige Hinweis über automatische Bereinigung
+document.addEventListener('DOMContentLoaded', function() {
+    // Informiere über automatische Bereinigung
+    const archiveInfo = document.createElement('div');
+    archiveInfo.className = 'alert alert-info alert-dismissible fade show';
+    archiveInfo.innerHTML = `
+        <i class="fas fa-recycle me-2"></i>
+        <strong>Automatische Bereinigung:</strong> Aufgaben älter als 14 Tage werden automatisch gelöscht, um Speicher zu sparen.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Zeige Hinweis nur beim ersten Besuch der Seite
+    if (!sessionStorage.getItem('archive_info_shown')) {
+        const container = document.querySelector('.container');
+        const firstRow = container.querySelector('.row');
+        firstRow.parentNode.insertBefore(archiveInfo, firstRow);
+        sessionStorage.setItem('archive_info_shown', 'true');
+    }
+});
+
+console.log('Archiv-Seite geladen - Automatische Bereinigung aktiv');
+</script>
+{% endblock %}

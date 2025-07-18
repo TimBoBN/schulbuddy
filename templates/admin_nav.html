@@ -1,0 +1,26 @@
+<!-- Admin-Navigation -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="btn-group" role="group" aria-label="Admin-Navigation">
+                    <a href="{{ url_for('admin.admin_dashboard') }}" class="btn {% if request.endpoint == 'admin.admin_dashboard' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="{{ url_for('admin.admin_users') }}" class="btn {% if request.endpoint == 'admin.admin_users' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        <i class="fas fa-users"></i> Benutzer
+                    </a>
+                    <a href="{{ url_for('admin.admin_create_user') }}" class="btn {% if request.endpoint == 'admin.admin_create_user' %}btn-success{% else %}btn-outline-success{% endif %}">
+                        <i class="fas fa-user-plus"></i> Erstellen
+                    </a>
+                    <a href="{{ url_for('admin.admin_change_password') }}" class="btn {% if request.endpoint == 'admin.admin_change_password' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                        <i class="fas fa-key"></i> Passwort
+                    </a>
+                    <a href="{{ url_for('admin.admin_settings') }}" class="btn {% if request.endpoint == 'admin.admin_settings' %}btn-info{% else %}btn-outline-info{% endif %}">
+                        <i class="fas fa-cogs"></i> Einstellungen
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

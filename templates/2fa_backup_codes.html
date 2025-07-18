@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Backup-Codes - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-shield-alt me-2 text-success"></i>
+                        2FA erfolgreich aktiviert!
+                    </h3>
+                </div>
+                
+                <div class="card-body">
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Glückwunsch!</strong> Dein Konto ist jetzt durch Zwei-Faktor-Authentifizierung geschützt.
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Wichtig:</strong> Bewahre diese Backup-Codes sicher auf! Du kannst sie verwenden, falls dein Authenticator-Gerät nicht verfügbar ist.
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>
+                            <i class="fas fa-key me-2"></i>
+                            Deine Backup-Codes
+                        </h5>
+                        <p class="text-muted">
+                            Jeder Code kann nur einmal verwendet werden. Speichere sie an einem sicheren Ort!
+                        </p>
+                        
+                        <div class="row">
+                            {% for code in backup_codes %}
+                            <div class="col-md-6 mb-2">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center py-2">
+                                        <code class="fs-5">{{ code }}</code>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>
+                            <i class="fas fa-download me-2"></i>
+                            Codes speichern
+                        </h5>
+                        <p class="text-muted">
+                            Speichere diese Codes in einem Passwort-Manager oder drucke sie aus.
+                        </p>
+                        
+                        <div class="d-grid gap-2 d-md-block">
+                            <button type="button" class="btn btn-primary" onclick="downloadCodes()">
+                                <i class="fas fa-download me-1"></i>
+                                Als Textdatei herunterladen
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="printCodes()">
+                                <i class="fas fa-print me-1"></i>
+                                Drucken
+                            </button>
+                            <button type="button" class="btn btn-info" onclick="copyCodes()">
+                                <i class="fas fa-copy me-1"></i>
+                                In Zwischenablage kopieren
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Nächste Schritte:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Speichere die Backup-Codes sicher</li>
+                            <li>Teste die 2FA-Anmeldung</li>
+                            <li>Halte dein Authenticator-Gerät bereit</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="text-center">
+                        <a href="{{ url_for('auth.profile') }}" class="btn btn-success btn-lg">
+                            <i class="fas fa-check me-2"></i>
+                            Zum Profil
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const backupCodes = {{ backup_codes|tojson }};
+
+function downloadCodes() {
+    const content = `SchulBuddy - 2FA Backup-Codes
+Erstellt am: ${new Date().toLocaleDateString('de-DE')}
+Benutzer: {{ current_user.username }}
+
+WICHTIG: Bewahre diese Codes sicher auf!
+Jeder Code kann nur einmal verwendet werden.
+
+Backup-Codes:
+${backupCodes.map((code, index) => `${index + 1}. ${code}`).join('\n')}
+
+Verwendung:
+- Verwende diese Codes, wenn dein Authenticator-Gerät nicht verfügbar ist
+- Gib einen Code anstelle des 6-stelligen Authenticator-Codes ein
+- Jeder Code ist nur einmal verwendbar
+- Generiere neue Codes, wenn alle aufgebraucht sind
+`;
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `schulbuddy-backup-codes-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function printCodes() {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>SchulBuddy - 2FA Backup-Codes</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .codes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+                .code { padding: 10px; border: 1px solid #ddd; text-align: center; font-family: monospace; font-size: 16px; }
+                .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; margin: 20px 0; }
+                .footer { margin-top: 30px; font-size: 12px; color: #666; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>SchulBuddy - 2FA Backup-Codes</h1>
+                <p>Benutzer: {{ current_user.username }}</p>
+                <p>Erstellt am: ${new Date().toLocaleDateString('de-DE')}</p>
+            </div>
+            
+            <div class="warning">
+                <strong>WICHTIG:</strong> Bewahre diese Codes sicher auf! Jeder Code kann nur einmal verwendet werden.
+            </div>
+            
+            <div class="codes">
+                ${backupCodes.map(code => `<div class="code">${code}</div>`).join('')}
+            </div>
+            
+            <div class="footer">
+                <p><strong>Verwendung:</strong></p>
+                <ul>
+                    <li>Verwende diese Codes, wenn dein Authenticator-Gerät nicht verfügbar ist</li>
+                    <li>Gib einen Code anstelle des 6-stelligen Authenticator-Codes ein</li>
+                    <li>Jeder Code ist nur einmal verwendbar</li>
+                    <li>Generiere neue Codes, wenn alle aufgebraucht sind</li>
+                </ul>
+            </div>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+}
+
+function copyCodes() {
+    const codesText = backupCodes.join('\n');
+    navigator.clipboard.writeText(codesText).then(() => {
+        // Zeige Erfolg-Feedback
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check me-1"></i>Kopiert!';
+        button.className = 'btn btn-success';
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.className = 'btn btn-info';
+        }, 2000);
+    }).catch(err => {
+        console.error('Fehler beim Kopieren:', err);
+        alert('Fehler beim Kopieren in die Zwischenablage');
+    });
+}
+</script>
+{% endblock %}

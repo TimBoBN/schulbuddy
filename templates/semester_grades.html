@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Halbjahres-Noten - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>📊 Halbjahres-Noten</h1>
+                <a href="/" class="btn btn-secondary">← Zurück zum Dashboard</a>
+            </div>
+            
+            <!-- Halbjahr-Auswahl -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>🎯 Halbjahr auswählen</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <form method="get" class="d-flex gap-2">
+                                <select class="form-select" name="semester" onchange="this.form.submit()">
+                                    <option value="1" {% if semester == 1 %}selected{% endif %}>1. Halbjahr</option>
+                                    <option value="2" {% if semester == 2 %}selected{% endif %}>2. Halbjahr</option>
+                                </select>
+                                <input type="hidden" name="school_year" value="{{ school_year }}">
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <form method="get" class="d-flex gap-2">
+                                <input type="hidden" name="semester" value="{{ semester }}">
+                                <input class="form-control" type="text" name="school_year" value="{{ school_year }}" placeholder="Schuljahr">
+                                <button type="submit" class="btn btn-outline-primary">Laden</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Durchschnitt -->
+            <div class="card mb-4 bg-primary text-white">
+                <div class="card-body">
+                    <h3>📈 Zeugnis-Durchschnitt {{ semester }}. Halbjahr {{ school_year }}</h3>
+                    <h2>{{ "%.2f"|format(total_average or 0) }}</h2>
+                </div>
+            </div>
+            
+            <!-- Noten nach Fach -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>📚 Noten nach Fach</h5>
+                </div>
+                <div class="card-body">
+                    {% for subject, avg in durchschnitt.items() %}
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="grade-average-card">
+                                    <div class="grade-subject-header">
+                                        <span class="subject-badge" style="background-color: {{ subjects.get(subject, '#6c757d') }};">
+                                            {{ subject }}
+                                        </span>
+                                        <div class="grade-average-info">
+                                            <span class="grade-average-value">{{ "%.2f"|format(avg.average or 0) }}</span>
+                                            <small class="text-muted">({{ avg.count }} {% if avg.count == 1 %}Note{% else %}Noten{% endif %})</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="grade-list">
+                                        {% for grade in grades %}
+                                            {% if grade.subject == subject %}
+                                                <div class="grade-item">
+                                                    <div class="grade-badge-container">
+                                                        <span class="badge grade-badge bg-{{ 'success' if (grade.grade or 0) <= 2 else 'warning' if (grade.grade or 0) <= 4 else 'danger' }}">
+                                                            {{ grade.grade or 0 }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="grade-details">
+                                                        {% if grade.description %}
+                                                            <div class="grade-description">{{ grade.description }}</div>
+                                                        {% endif %}
+                                                        {% if grade.date %}
+                                                            <div class="grade-date">{{ grade.date.strftime('%d.%m.%Y') }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Alle Noten -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>📋 Alle Noten ({{ grades|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if grades %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Fach</th>
+                                        <th>Note</th>
+                                        <th>Beschreibung</th>
+                                        <th>Datum</th>
+                                        <th>Verknüpfte Aufgabe</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for grade in grades %}
+                                        <tr>
+                                            <td>
+                                                <span class="subject-badge" style="background-color: {{ subjects.get(grade.subject, '#6c757d') }};">
+                                                    {{ grade.subject }}
+                                                </span>
+                                            </td>
+                                            <td><strong>{{ grade.grade }}</strong></td>
+                                            <td>{{ grade.description or '-' }}</td>
+                                            <td>{{ grade.date.strftime('%d.%m.%Y') if grade.date else '-' }}</td>
+                                            <td>
+                                                {% if grade.task_id %}
+                                                    <small class="text-muted">Mit Aufgabe verknüpft</small>
+                                                {% else %}
+                                                    <small class="text-muted">Manuell hinzugefügt</small>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">Keine Noten für dieses Halbjahr vorhanden.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

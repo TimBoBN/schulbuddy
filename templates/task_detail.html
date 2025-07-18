@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Aufgaben-Details - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="/calendar">Kalender</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Aufgaben-Details</li>
+                </ol>
+            </nav>
+            
+            <!-- Aufgaben-Details Card -->
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">📝 Aufgaben-Details</h4>
+                    <div>
+                        {% if task.task_type == 'exam' %}
+                            <span class="badge bg-danger">📝 Klassenarbeit</span>
+                        {% elif task.task_type == 'project' %}
+                            <span class="badge bg-success">🎯 Projekt</span>
+                        {% else %}
+                            <span class="badge bg-info">📚 Hausaufgabe</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Titel -->
+                    <div class="mb-4">
+                        <h2 class="text-primary">{{ task.title }}</h2>
+                    </div>
+                    
+                    <!-- Fach -->
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">🏫 Fach</h6>
+                        <span class="badge fs-6 p-2" style="background-color: {{ subjects.get(task.subject, '#6c757d') }}; color: white;">
+                            {{ task.subject }}
+                        </span>
+                    </div>
+                    
+                    <!-- Fälligkeitsdatum -->
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">📅 Fälligkeitsdatum</h6>
+                        <p class="fs-5 mb-0">
+                            {{ task.due_date.strftime('%d.%m.%Y') }}
+                            {% set days_until = (task.due_date - today).days %}
+                            {% if days_until < 0 %}
+                                <span class="badge bg-danger ms-2">⚠️ Überfällig ({{ -days_until }} Tage)</span>
+                            {% elif days_until == 0 %}
+                                <span class="badge bg-warning ms-2">⚡ Heute fällig</span>
+                            {% elif days_until == 1 %}
+                                <span class="badge bg-warning ms-2">📍 Morgen fällig</span>
+                            {% elif days_until <= 7 %}
+                                <span class="badge bg-info ms-2">📅 In {{ days_until }} Tagen</span>
+                            {% else %}
+                                <span class="badge bg-secondary ms-2">📅 In {{ days_until }} Tagen</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <!-- Beschreibung -->
+                    {% if task.description %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">📄 Beschreibung</h6>
+                        <div class="description-box">
+                            <p class="mb-0">{{ task.description }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Datei -->
+                    {% if task.file %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-1">📎 Anhang</h6>
+                        <a href="{{ url_for('static', filename='uploads/' + task.file) }}" 
+                           class="btn btn-outline-primary btn-sm" target="_blank">
+                            📎 {{ task.file }}
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Status -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-1">✅ Status</h6>
+                        {% if task.completed %}
+                            <span class="badge bg-success fs-6 p-2">✅ Erledigt</span>
+                        {% else %}
+                            <span class="badge bg-warning fs-6 p-2">⏳ Offen</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Metadaten -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-1">📊 Semester</h6>
+                                <p class="mb-0">{{ task.semester or 'Nicht angegeben' }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-1">📚 Schuljahr</h6>
+                                <p class="mb-0">{{ task.school_year or 'Nicht angegeben' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Aktionen -->
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="/calendar" class="btn btn-outline-secondary">
+                            ← Zurück zum Kalender
+                        </a>
+                    </div>
+                    <div>
+                        {% if not task.completed %}
+                            <a href="/edit_task/{{ task.id }}" class="btn btn-primary">
+                                ✏️ Bearbeiten
+                            </a>
+                            <form method="POST" action="/complete_task/{{ task.id }}" style="display: inline;">
+                                <button type="submit" class="btn btn-success" 
+                                        onclick="return confirm('Aufgabe als erledigt markieren?')">
+                                    ✅ Als erledigt markieren
+                                </button>
+                            </form>
+                        {% else %}
+                            <span class="text-success">✅ Aufgabe erledigt</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

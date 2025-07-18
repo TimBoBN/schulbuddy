@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}2FA einrichten - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Zwei-Faktor-Authentifizierung einrichten
+                    </h3>
+                </div>
+                
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>
+                                <i class="fas fa-mobile-alt me-2"></i>
+                                Schritt 1: Authenticator-App installieren
+                            </h5>
+                            <p>Installiere eine Authenticator-App auf deinem Smartphone:</p>
+                            <ul>
+                                <li><strong>Google Authenticator</strong> (iOS/Android)</li>
+                                <li><strong>Microsoft Authenticator</strong> (iOS/Android)</li>
+                                <li><strong>Authy</strong> (iOS/Android)</li>
+                                <li><strong>1Password</strong> (iOS/Android)</li>
+                            </ul>
+                            
+                            <hr>
+                            
+                            <h5>
+                                <i class="fas fa-qrcode me-2"></i>
+                                Schritt 2: QR-Code scannen
+                            </h5>
+                            <p>Scanne den QR-Code mit deiner Authenticator-App:</p>
+                            <div class="text-center mb-3">
+                                <img src="data:image/png;base64,{{ qr_code }}" alt="2FA QR Code" class="img-fluid border rounded">
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Tipp:</strong> Falls du den QR-Code nicht scannen kannst, gib diesen Schlüssel manuell ein:
+                                <br>
+                                <code>{{ secret }}</code>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h5>
+                                <i class="fas fa-key me-2"></i>
+                                Schritt 3: Code bestätigen
+                            </h5>
+                            <p>Gib den 6-stelligen Code aus deiner Authenticator-App ein:</p>
+                            
+                            <form method="POST">
+                                <div class="mb-3">
+                                    <label for="token" class="form-label">
+                                        <i class="fas fa-lock me-1"></i>
+                                        6-stelliger Code
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control form-control-lg text-center" 
+                                           id="token" 
+                                           name="token" 
+                                           placeholder="123456"
+                                           pattern="[0-9]{6}"
+                                           maxlength="6"
+                                           required
+                                           autocomplete="one-time-code"
+                                           style="letter-spacing: 0.5em;">
+                                    <div class="form-text">
+                                        Der Code ändert sich alle 30 Sekunden
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-shield-alt me-2"></i>
+                                        2FA aktivieren
+                                    </button>
+                                    <a href="{{ url_for('auth.profile') }}" class="btn btn-secondary">
+                                        <i class="fas fa-times me-1"></i>
+                                        Abbrechen
+                                    </a>
+                                </div>
+                            </form>
+                            
+                            <div class="alert alert-warning mt-3">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Wichtig:</strong> Nach der Aktivierung erhältst du Backup-Codes. 
+                                Bewahre diese sicher auf!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-Format für Token-Eingabe
+document.getElementById('token').addEventListener('input', function(e) {
+    // Entferne alle Nicht-Ziffern
+    let value = e.target.value.replace(/[^0-9]/g, '');
+    
+    // Begrenze auf 6 Stellen
+    if (value.length > 6) {
+        value = value.slice(0, 6);
+    }
+    
+    e.target.value = value;
+});
+
+// Auto-Submit bei 6 Stellen
+document.getElementById('token').addEventListener('input', function(e) {
+    if (e.target.value.length === 6) {
+        // Kurze Verzögerung für bessere UX
+        setTimeout(() => {
+            if (e.target.value.length === 6) {
+                e.target.form.submit();
+            }
+        }, 500);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Achievements - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>🏆 Achievements</h1>
+            <p class="text-muted">Deine Erfolge und Fortschritte</p>
+        </div>
+    </div>
+
+    <!-- Benutzer-Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>{{ user.level }}</h3>
+                    <p class="mb-0">Level</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>{{ user.total_points }}</h3>
+                    <p class="mb-0">Punkte</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h3>{{ earned_achievements|length }}</h3>
+                    <p class="mb-0">Erhalten</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3>{{ available_achievements|length }}</h3>
+                    <p class="mb-0">Verfügbar</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Erhaltene Achievements -->
+    {% if earned_achievements %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>✅ Erhaltene Achievements</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for earned_achievement in earned_achievements %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card achievement-card earned">
+                                <div class="card-body text-center">
+                                    <div class="achievement-icon">{{ earned_achievement.achievement.icon }}</div>
+                                    <h6 class="achievement-name">{{ earned_achievement.achievement.name }}</h6>
+                                    <p class="achievement-description">{{ earned_achievement.achievement.description }}</p>
+                                    <span class="badge bg-success">+{{ earned_achievement.achievement.points }} Punkte</span>
+                                    <small class="text-muted d-block mt-2">Erhalten: {{ earned_achievement.earned_at.strftime('%d.%m.%Y') }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Verfügbare Achievements -->
+    {% if available_achievements %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🎯 Verfügbare Achievements</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for achievement in available_achievements %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card achievement-card available">
+                                <div class="card-body text-center">
+                                    <div class="achievement-icon">{{ achievement.icon }}</div>
+                                    <h6 class="achievement-name">{{ achievement.name }}</h6>
+                                    <p class="achievement-description">{{ achievement.description }}</p>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar" role="progressbar" 
+                                             style="width: {{ progress[achievement.id] }}%"
+                                             aria-valuenow="{{ progress[achievement.id] }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">{{ progress[achievement.id]|round(0) }}% erreicht</small>
+                                    <br>
+                                    <span class="badge bg-primary">{{ achievement.points }} Punkte</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Fortschritts-Tipps -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>💡 Tipps für mehr Achievements</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>🔥 Streak aufbauen</h6>
+                            <p class="text-muted">Logge dich täglich ein und erledige Aufgaben, um deine Serie zu verlängern.</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>📝 Aufgaben erledigen</h6>
+                            <p class="text-muted">Erledige regelmäßig Aufgaben, um Punkte zu sammeln und aufzusteigen.</p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>📊 Noten eintragen</h6>
+                            <p class="text-muted">Trage deine Noten ein, um deinen Fortschritt zu verfolgen.</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>🎯 Ziele setzen</h6>
+                            <p class="text-muted">Setze dir realistische Ziele und arbeite kontinuierlich darauf hin.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zurück Button -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <a href="{{ url_for('statistics.statistics') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Zurück zu Statistiken
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.achievement-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid transparent;
+}
+
+.achievement-card.earned {
+    border-color: #28a745;
+    background: linear-gradient(135deg, #e8f5e8 0%, #f8fff8 100%);
+}
+
+.achievement-card.available {
+    border-color: #6c757d;
+    opacity: 0.8;
+}
+
+.achievement-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.achievement-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.achievement-name {
+    font-weight: bold;
+    color: var(--bs-primary);
+}
+
+.achievement-description {
+    font-size: 0.9rem;
+    color: var(--bs-secondary);
+    margin-bottom: 1rem;
+}
+
+[data-bs-theme="dark"] .achievement-card.earned {
+    background: linear-gradient(135deg, #1a4a1a 0%, #2d5a2d 100%);
+    border-color: #28a745;
+}
+
+[data-bs-theme="dark"] .achievement-card.available {
+    background: var(--bg-primary);
+    border-color: #495057;
+}
+</style>
+{% endblock %}

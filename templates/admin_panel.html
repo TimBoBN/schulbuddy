@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Admin-Panel - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>🛡️ Admin-Panel</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Admin-Panel</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <!-- Admin-Navigation -->
+    {% include 'admin_nav.html' %}
+    
+    <!-- Statistiken -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">👥 Benutzer</h5>
+                    <h2 class="card-text">{{ total_users }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">📝 Aufgaben</h5>
+                    <h2 class="card-text">{{ total_tasks }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">🎯 Noten</h5>
+                    <h2 class="card-text">{{ total_grades }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Admin-Aktionen -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">⚙️ Admin-Aktionen</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-primary">
+                                <div class="card-body">
+                                    <h6 class="card-title">👥 Benutzerverwaltung</h6>
+                                    <p class="card-text">Verwalte alle registrierten Benutzer.</p>
+                                    <a href="/admin/users" class="btn btn-primary">Benutzer verwalten</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-warning">
+                                <div class="card-body">
+                                    <h6 class="card-title">🔒 Passwort ändern</h6>
+                                    <p class="card-text">Ändere dein Admin-Passwort.</p>
+                                    <a href="/admin/change_password" class="btn btn-warning">Passwort ändern</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-info">
+                                <div class="card-body">
+                                    <h6 class="card-title">⚙️ System-Einstellungen</h6>
+                                    <p class="card-text">Konfiguriere App-Einstellungen und Sicherheit.</p>
+                                    <a href="{{ url_for('admin.admin_settings') }}" class="btn btn-info">Einstellungen</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Letzte Aktivitäten -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">👥 Neue Benutzer</h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_users %}
+                        <div class="list-group list-group-flush">
+                            {% for user in recent_users %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ user.username }}</strong>
+                                        <br><small class="text-muted">{{ user.email }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="text-muted">{{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                                        {% if user.is_admin %}
+                                            <br><span class="badge bg-warning">Admin</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Keine Benutzer gefunden.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">📝 Neue Aufgaben</h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_tasks %}
+                        <div class="list-group list-group-flush">
+                            {% for task in recent_tasks %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>{{ task.title }}</strong>
+                                        <small class="text-muted">{{ task.created_at.strftime('%d.%m.%Y') }}</small>
+                                    </div>
+                                    <div class="mt-1">
+                                        <span class="badge bg-primary">{{ task.subject }}</span>
+                                        <span class="badge bg-secondary">{{ task.task_type }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Keine Aufgaben gefunden.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

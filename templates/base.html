@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SchulBuddy{% endblock %}</title>
+    
+    <!-- Theme Loading Script - Must be first to prevent flashing -->
+    <script>
+        // Synchrones Theme-Loading ohne Verzögerung
+        (function() {
+            try {
+                const prefersDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const savedTheme = localStorage.getItem('theme');
+                
+                let theme;
+                if (savedTheme) {
+                    theme = savedTheme;
+                } else {
+                    theme = prefersDarkMode ? 'dark' : 'light';
+                }
+                
+                document.documentElement.setAttribute('data-bs-theme', theme);
+                
+                // Für den Fall, dass Bootstrap noch nicht geladen ist
+                if (theme === 'dark') {
+                    document.documentElement.style.backgroundColor = '#1e293b';
+                    document.documentElement.style.color = '#f1f5f9';
+                }
+            } catch (e) {
+                // Fallback auf light mode
+                document.documentElement.setAttribute('data-bs-theme', 'light');
+            }
+        })();
+    </script>
+    
+    <!-- Inline CSS für sofortigen Dark Mode -->
+    <style>
+        /* Sofortiger Dark Mode ohne Flackern */
+        [data-bs-theme="dark"] {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+        }
+        
+        [data-bs-theme="dark"] body {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+        }
+        
+        /* Verhindere Flackern während des Ladens */
+        html {
+            transition: none !important;
+        }
+        
+        body {
+            transition: none !important;
+        }
+    </style>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- FontAwesome CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/calendar.css">
+</head>
+<body>
+
+    <!-- Session Timeout Warning Modal -->
+    {% if current_user.is_authenticated %}
+    <div class="modal fade" id="sessionTimeoutModal" tabindex="-1" aria-labelledby="sessionTimeoutModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="sessionTimeoutModalLabel">
+                        <i class="fas fa-clock me-2"></i>Session läuft ab
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <p>Ihre Session läuft in <strong><span id="countdown">5</span> Minuten</strong> ab.</p>
+                    <p>Klicken Sie auf "Session verlängern", um angemeldet zu bleiben.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-1"></i>Jetzt abmelden
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="extendSession()">
+                        <i class="fas fa-refresh me-1"></i>Session verlängern
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">📘 SchulBuddy</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link" href="{{ url_for('main.index') }}">Dashboard</a>
+                    <a class="nav-link" href="{{ url_for('tasks.tasks_overview') }}">Aufgaben</a>
+                    <a class="nav-link" href="{{ url_for('tasks.archive') }}">Archiv</a>
+                    <a class="nav-link" href="{{ url_for('tasks.calendar') }}">Kalender</a>
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="gradesDropdown" role="button" data-bs-toggle="dropdown">
+                            Noten
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('grades.semester_grades') }}">
+                                <i class="fas fa-chart-bar me-2"></i>Halbjahres-Noten
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('grades.certificate_grades') }}">
+                                <i class="fas fa-certificate me-2"></i>Zeugnisnoten
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('grades.grade_progress') }}">
+                                <i class="fas fa-chart-line me-2"></i>Noten-Verlauf
+                            </a></li>
+                        </ul>
+                    </div>
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="statsDropdown" role="button" data-bs-toggle="dropdown">
+                            Statistiken
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('statistics.statistics') }}">
+                                <i class="fas fa-chart-pie me-2"></i>Übersicht
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('statistics.achievements') }}">
+                                <i class="fas fa-trophy me-2"></i>Achievements
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('statistics.streaks') }}">
+                                <i class="fas fa-fire me-2"></i>Lernstreak
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('statistics.notifications') }}">
+                                <i class="fas fa-bell me-2"></i>Benachrichtigungen
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('tasks.api_key_management') }}">
+                                <i class="fas fa-key me-2"></i>API-Schlüssel
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('statistics.export_data') }}">
+                                <i class="fas fa-download me-2"></i>Daten exportieren
+                            </a></li>
+                        </ul>
+                    </div>
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.is_admin %}
+                            <a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}">🛡️ Admin</a>
+                        {% endif %}
+                        <div class="navbar-nav ms-3">
+                            <div class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-user me-1"></i>{{ current_user.username }}
+                                    {% if current_user.two_factor_enabled %}
+                                        <i class="fas fa-shield-alt text-success ms-1" title="2FA aktiviert"></i>
+                                    {% endif %}
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}">
+                                        <i class="fas fa-user-circle me-2"></i>Profil
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}">
+                                        <i class="fas fa-key me-2"></i>Passwort ändern
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Abmelden
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    {% endif %}
+                    <!-- Theme Toggle Button -->
+                    <div class="theme-controls">
+                        <button class="btn theme-toggle" onclick="toggleTheme()" title="Theme umschalten">
+                            <span id="theme-icon">🌙</span>
+                        </button>
+                        <button class="btn theme-reset" onclick="resetThemeToSystem()" title="Auf System-Theme zurücksetzen">
+                            <span>🔄</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/app.js"></script>
+    
+    {% if current_user.is_authenticated %}
+    <script>
+        // Session-Timeout-Management
+        let sessionTimeoutMinutes = parseInt('{{ session.get("session_timeout_minutes", "120") }}');
+        let sessionStartTime = Date.now();
+        let warningShown = false;
+        let countdownInterval;
+        
+        function checkSessionTimeout() {
+            const elapsed = (Date.now() - sessionStartTime) / 1000 / 60; // in Minuten
+            const remaining = sessionTimeoutMinutes - elapsed;
+            
+            // Warnung 5 Minuten vor Ablauf
+            if (remaining <= 5 && !warningShown) {
+                showSessionWarning(Math.ceil(remaining));
+                warningShown = true;
+            }
+            
+            // Automatischer Logout bei Ablauf
+            if (remaining <= 0) {
+                logout();
+            }
+        }
+        
+        function showSessionWarning(minutes) {
+            const modal = new bootstrap.Modal(document.getElementById('sessionTimeoutModal'));
+            const countdown = document.getElementById('countdown');
+            
+            countdown.textContent = minutes;
+            modal.show();
+            
+            // Countdown aktualisieren
+            countdownInterval = setInterval(() => {
+                const elapsed = (Date.now() - sessionStartTime) / 1000 / 60;
+                const remaining = Math.ceil(sessionTimeoutMinutes - elapsed);
+                
+                if (remaining > 0) {
+                    countdown.textContent = remaining;
+                } else {
+                    clearInterval(countdownInterval);
+                    logout();
+                }
+            }, 60000); // jede Minute
+        }
+        
+        function extendSession() {
+            fetch('/extend_session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    sessionStartTime = Date.now();
+                    warningShown = false;
+                    if (countdownInterval) {
+                        clearInterval(countdownInterval);
+                    }
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('sessionTimeoutModal'));
+                    modal.hide();
+                    
+                    // Erfolgsmeldung
+                    showNotification('Session erfolgreich verlängert!', 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Fehler beim Verlängern der Session:', error);
+                showNotification('Fehler beim Verlängern der Session', 'error');
+            });
+        }
+        
+        function logout() {
+            window.location.href = '/logout';
+        }
+        
+        function showNotification(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+        
+        // Aktivität verfolgen
+        let activityTimeout;
+        function resetActivityTimer() {
+            if (activityTimeout) {
+                clearTimeout(activityTimeout);
+            }
+            sessionStartTime = Date.now();
+            warningShown = false;
+        }
+        
+        // Event-Listener für Benutzeraktivität
+        document.addEventListener('mousemove', resetActivityTimer);
+        document.addEventListener('keypress', resetActivityTimer);
+        document.addEventListener('click', resetActivityTimer);
+        document.addEventListener('scroll', resetActivityTimer);
+        
+        // Session-Timeout-Überprüfung alle 30 Sekunden
+        setInterval(checkSessionTimeout, 30000);
+    </script>
+    {% endif %}
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

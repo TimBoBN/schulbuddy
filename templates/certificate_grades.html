@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Zeugnisnoten{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="header-section">
+                <h1 class="page-title">
+                    <i class="fas fa-certificate me-2"></i>
+                    Zeugnisnoten
+                </h1>
+                <p class="page-subtitle">Übersicht über alle Zeugnisnoten</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="action-buttons">
+                <a href="{{ url_for('grades.add_certificate_grades') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Zeugnisnoten hinzufügen
+                </a>
+                <a href="{{ url_for('grades.grade_progress') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-chart-line me-2"></i>Noten-Verlauf anzeigen
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if overall_average > 0 %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <h4><i class="fas fa-chart-bar me-2"></i>Gesamtdurchschnitt: <span class="fw-bold">{{ overall_average }}</span></h4>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if grades_by_period %}
+        {% for period_key, period_data in grades_by_period.items() %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card grade-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-alt me-2"></i>
+                            {{ period_data.school_year }} - {{ period_data.semester }}. Halbjahr
+                            {% if period_data.average %}
+                                <span class="badge bg-primary ms-2">
+                                    ⌀ {{ period_data.average }}
+                                </span>
+                            {% endif %}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for grade in period_data.grades %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="subject-grade">
+                                    <div class="subject-name">{{ grade.subject }}</div>
+                                    <div class="grade-value grade-{{ grade.grade|round|int }}">
+                                        {{ grade.grade }}
+                                    </div>
+                                    {% if grade.description %}
+                                    <div class="grade-description">{{ grade.description }}</div>
+                                    {% endif %}
+                                    {% if grade.date %}
+                                    <div class="grade-date">
+                                        <i class="fas fa-calendar me-1"></i>
+                                        {{ grade.date.strftime('%d.%m.%Y') }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="row">
+            <div class="col-12">
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-certificate"></i>
+                    </div>
+                    <h3>Keine Zeugnisnoten vorhanden</h3>
+                    <p>Du hast noch keine Zeugnisnoten hinzugefügt.</p>
+                    <a href="{{ url_for('grades.add_certificate_grades') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Erste Zeugnisnoten hinzufügen
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.grade-card {
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.grade-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.subject-grade {
+    text-align: center;
+    padding: 1rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.subject-grade:hover {
+    background: var(--hover-bg);
+}
+
+.subject-name {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+}
+
+.grade-value {
+    font-size: 2rem;
+    font-weight: 700;
+    padding: 0.5rem;
+    border-radius: 8px;
+    margin: 0.5rem 0;
+    color: white;
+}
+
+.grade-1 { background: linear-gradient(135deg, #28a745, #20c997); }
+.grade-2 { background: linear-gradient(135deg, #17a2b8, #20c997); }
+.grade-3 { background: linear-gradient(135deg, #ffc107, #fd7e14); }
+.grade-4 { background: linear-gradient(135deg, #fd7e14, #dc3545); }
+.grade-5 { background: linear-gradient(135deg, #dc3545, #6f42c1); }
+.grade-6 { background: linear-gradient(135deg, #6f42c1, #343a40); }
+
+.grade-description {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+
+.grade-date {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+.action-buttons {
+    text-align: center;
+}
+
+.action-buttons .btn {
+    margin: 0 0.5rem;
+}
+</style>
+{% endblock %}

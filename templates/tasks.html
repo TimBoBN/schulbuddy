@@ -1,0 +1,521 @@
+{% extends "base.html" %}
+
+{% block title %}Aufgaben - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>📝 Meine Aufgaben</h1>
+                <div>
+                    <button class="btn btn-outline-secondary me-2" onclick="toggleCompletedTasks()">
+                        <i class="fas fa-eye me-1"></i>
+                        <span id="toggle-text">Erledigte anzeigen</span>
+                    </button>
+                    <a href="/add_task" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Neue Aufgabe
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter und Sortierung -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <select class="form-select form-select-sm" id="subjectFilter" onchange="filterTasks()">
+                                <option value="">Alle Fächer</option>
+                                {% for subject_key, subject_name in subjects.items() %}
+                                <option value="{{ subject_key }}">{{ subject_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select form-select-sm" id="typeFilter" onchange="filterTasks()">
+                                <option value="">Alle Typen</option>
+                                <option value="homework">Hausaufgabe</option>
+                                <option value="exam">Klassenarbeit</option>
+                                <option value="test">Test</option>
+                                <option value="project">Projekt</option>
+                                <option value="other">Sonstiges</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select form-select-sm" id="priorityFilter" onchange="filterTasks()">
+                                <option value="">Alle Prioritäten</option>
+                                <option value="exam">Klassenarbeit (Höchste)</option>
+                                <option value="test">Test (Hoch)</option>
+                                <option value="project">Projekt (Mittel)</option>
+                                <option value="homework">Hausaufgabe (Niedrig)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select form-select-sm" id="sortBy" onchange="sortTasks()">
+                                <option value="due_date">Nach Fälligkeit</option>
+                                <option value="priority">Nach Priorität</option>
+                                <option value="subject">Nach Fach</option>
+                                <option value="created">Nach Erstellung</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="row text-center">
+                <div class="col-4">
+                    <div class="badge bg-danger fs-6 w-100">
+                        Überfällig: <span id="overdue-count">{{ overdue_count }}</span>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="badge bg-warning fs-6 w-100">
+                        Heute: <span id="today-count">{{ today_count }}</span>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="badge bg-success fs-6 w-100">
+                        Gesamt: <span id="total-count">{{ total_count }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aufgaben-Liste -->
+    <div class="row">
+        <div class="col-12">
+            <!-- Überfällige Aufgaben -->
+            {% if overdue_tasks %}
+            <div class="card border-danger mb-4 overdue-section">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Überfällig ({{ overdue_tasks|length }})
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% for task in overdue_tasks %}
+                    <div class="task-item overdue" data-task-id="{{ task.id }}" 
+                         data-subject="{{ task.subject }}" 
+                         data-type="{{ task.task_type }}" 
+                         data-priority="{{ task.task_type }}"
+                         data-due="{{ task.due_date.strftime('%Y-%m-%d') if task.due_date else '' }}"
+                         data-created="{{ task.created_at.strftime('%Y-%m-%d') if task.created_at else '' }}">
+                        <div class="d-flex align-items-center p-3 border-bottom">
+                            <input type="checkbox" class="form-check-input me-3 task-checkbox" 
+                                   data-task-id="{{ task.id }}" 
+                                   {{ 'checked' if task.completed else '' }}>
+                            
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 task-title {{ 'text-decoration-line-through text-muted' if task.completed else '' }}">
+                                    {{ task.title }}
+                                </h6>
+                                <div class="task-meta">
+                                    <span class="badge bg-secondary me-2">{{ subjects[task.subject] }}</span>
+                                    <span class="badge bg-outline-secondary me-2">
+                                        {% if task.task_type == 'homework' %}Hausaufgabe
+                                        {% elif task.task_type == 'exam' %}Klassenarbeit
+                                        {% elif task.task_type == 'test' %}Test
+                                        {% elif task.task_type == 'project' %}Projekt
+                                        {% else %}{{ task.task_type }}{% endif %}
+                                    </span>
+                                    <span class="badge 
+                                        {% if task.task_type == 'exam' %}bg-danger
+                                        {% elif task.task_type == 'test' %}bg-danger
+                                        {% elif task.task_type == 'project' %}bg-warning
+                                        {% else %}bg-info{% endif %} me-2">
+                                        {% if task.task_type == 'exam' %}Höchste
+                                        {% elif task.task_type == 'test' %}Hoch
+                                        {% elif task.task_type == 'project' %}Mittel
+                                        {% else %}Niedrig{% endif %}
+                                    </span>
+                                </div>
+                                {% if task.description %}
+                                <p class="mb-1 text-muted small">{{ task.description }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="task-actions">
+                                <div class="text-end">
+                                    <small class="text-danger d-block">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Überfällig seit {{ (current_date - task.due_date).days }} Tage{{ 'n' if (current_date - task.due_date).days != 1 else '' }}
+                                    </small>
+                                    {% if task.filename %}
+                                    <small class="d-block">
+                                        <i class="fas fa-paperclip me-1"></i>
+                                        <a href="/static/uploads/{{ task.filename }}" target="_blank">Anhang</a>
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Heute fällige Aufgaben -->
+            {% if today_tasks %}
+            <div class="card border-warning mb-4 today-section">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-day me-2"></i>
+                        Heute fällig ({{ today_tasks|length }})
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% for task in today_tasks %}
+                    <div class="task-item today" data-task-id="{{ task.id }}" 
+                         data-subject="{{ task.subject }}" 
+                         data-type="{{ task.task_type }}" 
+                         data-priority="{{ task.task_type }}"
+                         data-due="{{ task.due_date.strftime('%Y-%m-%d') if task.due_date else '' }}"
+                         data-created="{{ task.created_at.strftime('%Y-%m-%d') if task.created_at else '' }}">
+                        <div class="d-flex align-items-center p-3 border-bottom">
+                            <input type="checkbox" class="form-check-input me-3 task-checkbox" 
+                                   data-task-id="{{ task.id }}" 
+                                   {{ 'checked' if task.completed else '' }}>
+                            
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 task-title {{ 'text-decoration-line-through text-muted' if task.completed else '' }}">
+                                    {{ task.title }}
+                                </h6>
+                                <div class="task-meta">
+                                    <span class="badge bg-secondary me-2">{{ subjects[task.subject] }}</span>
+                                    <span class="badge bg-outline-secondary me-2">
+                                        {% if task.task_type == 'homework' %}Hausaufgabe
+                                        {% elif task.task_type == 'exam' %}Klassenarbeit
+                                        {% elif task.task_type == 'test' %}Test
+                                        {% elif task.task_type == 'project' %}Projekt
+                                        {% else %}{{ task.task_type }}{% endif %}
+                                    </span>
+                                    <span class="badge 
+                                        {% if task.task_type == 'exam' %}bg-danger
+                                        {% elif task.task_type == 'test' %}bg-danger
+                                        {% elif task.task_type == 'project' %}bg-warning
+                                        {% else %}bg-info{% endif %} me-2">
+                                        {% if task.task_type == 'exam' %}Höchste
+                                        {% elif task.task_type == 'test' %}Hoch
+                                        {% elif task.task_type == 'project' %}Mittel
+                                        {% else %}Niedrig{% endif %}
+                                    </span>
+                                </div>
+                                {% if task.description %}
+                                <p class="mb-1 text-muted small">{{ task.description }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="task-actions">
+                                <div class="text-end">
+                                    <small class="text-warning d-block">
+                                        <i class="fas fa-calendar me-1"></i>Heute fällig
+                                    </small>
+                                    {% if task.filename %}
+                                    <small class="d-block">
+                                        <i class="fas fa-paperclip me-1"></i>
+                                        <a href="/static/uploads/{{ task.filename }}" target="_blank">Anhang</a>
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Kommende Aufgaben -->
+            <div class="card upcoming-section">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Kommende Aufgaben ({{ upcoming_tasks|length }})
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if upcoming_tasks %}
+                        {% for task in upcoming_tasks %}
+                        <div class="task-item upcoming" data-task-id="{{ task.id }}" 
+                             data-subject="{{ task.subject }}" 
+                             data-type="{{ task.task_type }}" 
+                             data-priority="{{ task.task_type }}"
+                             data-due="{{ task.due_date.strftime('%Y-%m-%d') if task.due_date else '' }}"
+                             data-created="{{ task.created_at.strftime('%Y-%m-%d') if task.created_at else '' }}">
+                            <div class="d-flex align-items-center p-3 border-bottom">
+                                <input type="checkbox" class="form-check-input me-3 task-checkbox" 
+                                       data-task-id="{{ task.id }}" 
+                                       {{ 'checked' if task.completed else '' }}>
+                                
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 task-title {{ 'text-decoration-line-through text-muted' if task.completed else '' }}">
+                                        {{ task.title }}
+                                    </h6>
+                                    <div class="task-meta">
+                                        <span class="badge bg-secondary me-2">{{ subjects[task.subject] }}</span>
+                                        <span class="badge bg-outline-secondary me-2">
+                                            {% if task.task_type == 'homework' %}Hausaufgabe
+                                            {% elif task.task_type == 'exam' %}Klassenarbeit
+                                            {% elif task.task_type == 'project' %}Projekt
+                                            {% else %}{{ task.task_type }}{% endif %}
+                                        </span>
+                                        <span class="badge 
+                                            {% if task.task_type == 'exam' %}bg-danger
+                                            {% elif task.task_type == 'project' %}bg-warning
+                                            {% else %}bg-info{% endif %} me-2">
+                                            {% if task.task_type == 'exam' %}Hoch
+                                            {% elif task.task_type == 'project' %}Mittel
+                                            {% else %}Niedrig{% endif %}
+                                        </span>
+                                    </div>
+                                    {% if task.description %}
+                                    <p class="mb-1 text-muted small">{{ task.description }}</p>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="task-actions">
+                                    <div class="text-end">
+                                        {% if task.due_date %}
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ task.due_date.strftime('%d.%m.%Y') }}
+                                        </small>
+                                        {% endif %}
+                                        {% if task.filename %}
+                                        <small class="d-block">
+                                            <i class="fas fa-paperclip me-1"></i>
+                                            <a href="/static/uploads/{{ task.filename }}" target="_blank">Anhang</a>
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center p-5 text-muted">
+                            <i class="fas fa-check-circle fa-3x mb-3"></i>
+                            <h5>Keine kommenden Aufgaben</h5>
+                            <p>Du hast alle deine Aufgaben erledigt! 🎉</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Erledigte Aufgaben -->
+            <div class="card completed-section" style="display: none;" id="completed-section">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Erledigte Aufgaben ({{ completed_tasks|length }})
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if completed_tasks %}
+                        {% for task in completed_tasks %}
+                        <div class="task-item completed" data-task-id="{{ task.id }}" 
+                             data-subject="{{ task.subject }}" 
+                             data-type="{{ task.task_type }}" 
+                             data-priority="{{ task.task_type }}"
+                             data-due="{{ task.due_date.strftime('%Y-%m-%d') if task.due_date else '' }}"
+                             data-created="{{ task.created_at.strftime('%Y-%m-%d') if task.created_at else '' }}">
+                            <div class="d-flex align-items-center p-3 border-bottom">
+                                <input type="checkbox" class="form-check-input me-3 task-checkbox" 
+                                       data-task-id="{{ task.id }}" 
+                                       checked>
+                                
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 task-title text-decoration-line-through text-muted">
+                                        {{ task.title }}
+                                    </h6>
+                                    <div class="task-meta">
+                                        <span class="badge bg-secondary me-2">{{ subjects[task.subject] }}</span>
+                                        <span class="badge bg-outline-secondary me-2">
+                                            {% if task.task_type == 'homework' %}Hausaufgabe
+                                            {% elif task.task_type == 'exam' %}Klassenarbeit
+                                            {% elif task.task_type == 'project' %}Projekt
+                                            {% else %}{{ task.task_type }}{% endif %}
+                                        </span>
+                                    </div>
+                                    {% if task.description %}
+                                    <p class="mb-1 text-muted small text-decoration-line-through">{{ task.description }}</p>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="task-actions">
+                                    <div class="text-end">
+                                        <small class="text-success d-block">
+                                            <i class="fas fa-check me-1"></i>Erledigt
+                                        </small>
+                                        {% if task.filename %}
+                                        <small class="d-block">
+                                            <i class="fas fa-paperclip me-1"></i>
+                                            <a href="/static/uploads/{{ task.filename }}" target="_blank">Anhang</a>
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center p-5 text-muted">
+                            <i class="fas fa-tasks fa-3x mb-3"></i>
+                            <h5>Keine erledigten Aufgaben</h5>
+                            <p>Noch keine Aufgaben abgeschlossen.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Task toggle functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.task-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const taskId = this.dataset.taskId;
+            const isCompleted = this.checked;
+            
+            fetch('/toggle_task', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    task_id: taskId,
+                    completed: isCompleted
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // Reload page to update task lists
+                } else {
+                    // Revert checkbox state on error
+                    this.checked = !isCompleted;
+                    alert('Fehler beim Aktualisieren der Aufgabe');
+                }
+            })
+            .catch(error => {
+                // Revert checkbox state on error
+                this.checked = !isCompleted;
+                console.error('Error:', error);
+                alert('Fehler beim Aktualisieren der Aufgabe');
+            });
+        });
+    });
+});
+
+// Toggle completed tasks visibility
+function toggleCompletedTasks() {
+    const completedSection = document.getElementById('completed-section');
+    const toggleText = document.getElementById('toggle-text');
+    
+    if (completedSection.style.display === 'none') {
+        completedSection.style.display = 'block';
+        toggleText.textContent = 'Erledigte ausblenden';
+    } else {
+        completedSection.style.display = 'none';
+        toggleText.textContent = 'Erledigte anzeigen';
+    }
+}
+
+// Filter tasks
+function filterTasks() {
+    const subjectFilter = document.getElementById('subjectFilter').value;
+    const typeFilter = document.getElementById('typeFilter').value;
+    const priorityFilter = document.getElementById('priorityFilter').value;
+    
+    const taskItems = document.querySelectorAll('.task-item');
+    let visibleCounts = { overdue: 0, today: 0, total: 0 };
+    
+    taskItems.forEach(item => {
+        let show = true;
+        
+        if (subjectFilter && item.dataset.subject !== subjectFilter) {
+            show = false;
+        }
+        
+        if (typeFilter && item.dataset.type !== typeFilter) {
+            show = false;
+        }
+        
+        if (priorityFilter && item.dataset.type !== priorityFilter) {
+            show = false;
+        }
+        
+        item.style.display = show ? 'block' : 'none';
+        
+        if (show && !item.classList.contains('completed')) {
+            visibleCounts.total++;
+            if (item.classList.contains('overdue')) {
+                visibleCounts.overdue++;
+            } else if (item.classList.contains('today')) {
+                visibleCounts.today++;
+            }
+        }
+    });
+    
+    // Update counters
+    document.getElementById('overdue-count').textContent = visibleCounts.overdue;
+    document.getElementById('today-count').textContent = visibleCounts.today;
+    document.getElementById('total-count').textContent = visibleCounts.total;
+}
+
+// Sort tasks
+function sortTasks() {
+    const sortBy = document.getElementById('sortBy').value;
+    const sections = ['.overdue-section', '.today-section', '.upcoming-section', '.completed-section'];
+    
+    sections.forEach(sectionSelector => {
+        const section = document.querySelector(sectionSelector);
+        if (!section) return;
+        
+        const cardBody = section.querySelector('.card-body');
+        const tasks = Array.from(cardBody.querySelectorAll('.task-item'));
+        
+        tasks.sort((a, b) => {
+            switch (sortBy) {
+                case 'due_date':
+                    const dateA = new Date(a.dataset.due || '9999-12-31');
+                    const dateB = new Date(b.dataset.due || '9999-12-31');
+                    return dateA - dateB;
+                    
+                case 'priority':
+                    const priorityOrder = { 'exam': 4, 'test': 3, 'project': 2, 'homework': 1 };
+                    const priorityA = priorityOrder[a.dataset.type] || 0;
+                    const priorityB = priorityOrder[b.dataset.type] || 0;
+                    return priorityB - priorityA;
+                    
+                case 'subject':
+                    return a.dataset.subject.localeCompare(b.dataset.subject);
+                    
+                case 'created':
+                    const createdA = new Date(a.dataset.created);
+                    const createdB = new Date(b.dataset.created);
+                    return createdB - createdA;
+                    
+                default:
+                    return 0;
+            }
+        });
+        
+        // Re-append sorted tasks
+        tasks.forEach(task => cardBody.appendChild(task));
+    });
+}
+</script>
+{% endblock %}
