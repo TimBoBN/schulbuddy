@@ -373,7 +373,7 @@ def init_db(app):
         
         # Erstelle Admin-Benutzer falls nicht vorhanden (erst nach create_all!)
         try:
-            if not User.query.filter_by(username='admin').first():
+            if not User.query.filter_by(id=1).first():
                 admin = User(username='admin', email='admin@schulbuddy.local', is_admin=True)
                 admin.set_password('admin123')
                 db.session.add(admin)

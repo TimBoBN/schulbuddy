@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Aufgaben -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">📝 Neue Aufgabe</div>
+                <div class="card-body">
+                    <form action="/add_task" method="post" enctype="multipart/form-data">
+                        <input class="form-control mb-2" type="text" name="title" placeholder="Aufgabe eingeben" required>
+                        
+                        <select class="form-select mb-2" name="subject" required>
+                            <option value="">Fach auswählen</option>
+                            {% for subject in subjects.keys() %}
+                                <option value="{{ subject }}">{{ subject }}</option>
+                            {% endfor %}
+                            {% for subject in used_subjects %}
+                                {% if subject not in subjects %}
+                                    <option value="{{ subject }}">{{ subject }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        
+                        <textarea class="form-control mb-2" name="description" placeholder="Beschreibung (optional)" rows="2"></textarea>
+                        
+                        <input class="form-control mb-2" type="date" name="due_date" required>
+                        <input class="form-control mb-2" type="file" name="upload" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.gif">
+                        <button class="btn btn-primary w-100">Hinzufügen</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>📅 Aufgabenübersicht ({{ aufgaben|length }})</span>
+                    <a href="/calendar" class="btn btn-sm btn-light">📅 Kalender</a>
+                </div>
+                <div class="card-body">
+                    {% if aufgaben %}
+                        <ul class="list-group list-group-flush">
+                            {% for task in aufgaben %}
+                                <li class="list-group-item task-item {{ 'task-completed' if task.get('completed', False) }}">
+                                    <div class="task-checkbox">
+                                        <input type="checkbox" class="form-check-input" 
+                                               {{ 'checked' if task.get('completed', False) }}
+                                               onchange="toggleTask({{ task.get('id', 0) }})">
+                                    </div>
+                                    
+                                    <div class="task-content">
+                                        <span class="subject-badge" style="background-color: {{ subjects.get(task.subject, '#6c757d') }};">
+                                            {{ task.subject }}
+                                        </span>
+                                        <strong>{{ task.title }}</strong>
+                                        <br><small class="text-muted">Fällig am: {{ task.due_date }}</small>
+                                        
+                                        {% if task.get('description') %}
+                                            <div class="task-description">{{ task.description }}</div>
+                                        {% endif %}
+                                        
+                                        {% if task.file %}
+                                            <br><a href="/static/uploads/{{ task.file }}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">📎 Material</a>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="task-actions">
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteTask({{ task.get('id', 0) }})">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted text-center">Keine Aufgaben vorhanden.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Noten -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">🏫 Neue Note</div>
+                <div class="card-body">
+                    <form action="/add_grade" method="post">
+                        <select class="form-select mb-2" name="subject" required>
+                            <option value="">Fach auswählen</option>
+                            {% for subject in subjects.keys() %}
+                                <option value="{{ subject }}">{{ subject }}</option>
+                            {% endfor %}
+                            {% for subject in used_subjects %}
+                                {% if subject not in subjects %}
+                                    <option value="{{ subject }}">{{ subject }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        
+                        <input class="form-control mb-2" type="number" step="0.1" min="1" max="6" name="grade" placeholder="Note (1-6)" required>
+                        <button class="btn btn-success w-100">Hinzufügen</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">📊 Notenübersicht ({{ noten|length }})</div>
+                <div class="card-body">
+                    {% if noten %}
+                        <ul class="list-group list-group-flush">
+                            {% for note in noten %}
+                                <li class="list-group-item note-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="subject-badge" style="background-color: {{ subjects.get(note.subject, '#6c757d') }};">
+                                            {{ note.subject }}
+                                        </span>
+                                        <br><small class="text-muted">{{ note.timestamp[:10] }}</small>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-{{ 'success' if note.grade <= 2 else 'warning' if note.grade <= 4 else 'danger' }} rounded-pill me-2">{{ note.grade }}</span>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteNote({{ note.get('id', 0) }})">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        
+                        {% if durchschnitt %}
+                            <div class="grade-average mt-3">
+                                <h6>📈 Durchschnitt pro Fach:</h6>
+                                {% for subject, avg in durchschnitt.items() %}
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>
+                                            <span class="subject-badge" style="background-color: {{ subjects.get(subject, '#6c757d') }};">
+                                                {{ subject }}
+                                            </span>
+                                        </span>
+                                        <strong class="text-{{ 'success' if avg <= 2 else 'warning' if avg <= 4 else 'danger' }}">{{ avg }}</strong>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted text-center">Keine Noten vorhanden.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
