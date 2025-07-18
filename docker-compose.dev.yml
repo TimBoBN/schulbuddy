@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  schulbuddy:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+      - /app/__pycache__
+    environment:
+      - SECRET_KEY=dev-secret-key
+      - DATABASE_URL=sqlite:///instance/schulbuddy.db
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - SESSION_TIMEOUT_MINUTES=120
+      - CURRENT_SCHOOL_YEAR=2024/25
+      - CURRENT_SEMESTER=1
+    command: ["python", "-m", "flask", "run", "--host=0.0.0.0", "--port=5000", "--debug"]

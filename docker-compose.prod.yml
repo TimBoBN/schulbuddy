@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  schulbuddy:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - schulbuddy_data:/app/instance
+      - schulbuddy_uploads:/app/static/uploads
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///instance/schulbuddy.db}
+      - FLASK_ENV=production
+      - SESSION_TIMEOUT_MINUTES=${SESSION_TIMEOUT_MINUTES:-120}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-false}
+      - CURRENT_SCHOOL_YEAR=${CURRENT_SCHOOL_YEAR:-2024/25}
+      - CURRENT_SEMESTER=${CURRENT_SEMESTER:-1}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    command: ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "app:app"]
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/conf.d/default.conf
+      - schulbuddy_uploads:/app/static/uploads:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - schulbuddy
+    restart: unless-stopped
+    profiles:
+      - production
+
+volumes:
+  schulbuddy_data:
+  schulbuddy_uploads:
+
+networks:
+  default:
+    name: schulbuddy-production

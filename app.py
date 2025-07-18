@@ -37,6 +37,17 @@ def create_app():
     # Routes registrieren
     register_routes(app)
     
+    # Health-Check-Endpoint für Docker
+    @app.route('/health')
+    def health_check():
+        """Health-Check-Endpoint für Container-Monitoring"""
+        try:
+            # Einfacher Datenbankverbindungstest
+            db.session.execute('SELECT 1')
+            return {'status': 'healthy', 'message': 'SchulBuddy is running'}, 200
+        except Exception as e:
+            return {'status': 'unhealthy', 'message': str(e)}, 500
+    
     # CLI-Kommando für automatische Bereinigung
     @app.cli.command()
     def cleanup_old_tasks():

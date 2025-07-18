@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  schulbuddy:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./instance:/app/instance
+      - ./static/uploads:/app/static/uploads
+    environment:
+      - SECRET_KEY=your-secure-secret-key-here
+      - DATABASE_URL=sqlite:///instance/schulbuddy.db
+      - FLASK_ENV=production
+      - SESSION_TIMEOUT_MINUTES=120
+      - CURRENT_SCHOOL_YEAR=2024/25
+      - CURRENT_SEMESTER=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Optional: Nginx als Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./static:/app/static
+    depends_on:
+      - schulbuddy
+    restart: unless-stopped
+    profiles:
+      - with-nginx
+
+networks:
+  default:
+    name: schulbuddy-network

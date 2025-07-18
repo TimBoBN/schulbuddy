@@ -1,0 +1,225 @@
+name: Python Application CI/CD
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov flake8 black isort safety bandit
+    
+    - name: Code formatting check (Black)
+      run: |
+        black --check --diff .
+    
+    - name: Import sorting check (isort)
+      run: |
+        isort --check-only --diff .
+    
+    - name: Lint with flake8
+      run: |
+        # Stoppe Build bei Syntax-Fehlern oder undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Behandle alle anderen als Warnings
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    
+    - name: Security check with bandit
+      run: |
+        bandit -r . -x tests/ -f json -o bandit-report.json || true
+    
+    - name: Safety check for known vulnerabilities
+      run: |
+        safety check --json --output safety-report.json || true
+    
+    - name: Set up test environment
+      run: |
+        export FLASK_ENV=testing
+        export SECRET_KEY=test-secret-key-for-github-actions
+        export DATABASE_URL=sqlite:///test.db
+    
+    - name: Run tests with pytest
+      run: |
+        export FLASK_ENV=testing
+        export SECRET_KEY=test-secret-key-for-github-actions
+        export DATABASE_URL=sqlite:///test.db
+        pytest --cov=. --cov-report=xml --cov-report=html
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: matrix.python-version == '3.11'
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+    
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-reports-python-${{ matrix.python-version }}
+        path: |
+          htmlcov/
+          bandit-report.json
+          safety-report.json
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build wheel setuptools
+    
+    - name: Create requirements.txt for deployment
+      run: |
+        pip install -r requirements.txt
+        pip freeze > requirements-frozen.txt
+    
+    - name: Create deployment package
+      run: |
+        # Erstelle Deployment-Archiv
+        mkdir -p dist
+        tar -czf dist/schulbuddy-${{ github.sha }}.tar.gz \
+          --exclude='.git' \
+          --exclude='.github' \
+          --exclude='__pycache__' \
+          --exclude='*.pyc' \
+          --exclude='.pytest_cache' \
+          --exclude='htmlcov' \
+          --exclude='instance' \
+          --exclude='static/uploads' \
+          .
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: schulbuddy-package-${{ github.sha }}
+        path: |
+          dist/
+          requirements-frozen.txt
+
+  deploy-staging:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+    environment: staging
+    
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: schulbuddy-package-${{ github.sha }}
+    
+    - name: Deploy to staging server
+      run: |
+        echo "Deploying Python application to staging..."
+        echo "Package: schulbuddy-${{ github.sha }}.tar.gz"
+        # Hier würdest du dein Python-Deployment-Script einfügen
+        # z.B.:
+        # scp dist/schulbuddy-${{ github.sha }}.tar.gz user@staging-server:/path/
+        # ssh user@staging-server "cd /path && tar -xzf schulbuddy-${{ github.sha }}.tar.gz && ./deploy.sh"
+
+  deploy-production:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: schulbuddy-package-${{ github.sha }}
+    
+    - name: Deploy to production server
+      run: |
+        echo "Deploying Python application to production..."
+        echo "Package: schulbuddy-${{ github.sha }}.tar.gz"
+        # Hier würdest du dein Produktions-Deployment einfügen
+
+  create-release:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: schulbuddy-package-${{ github.sha }}
+    
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: SchulBuddy ${{ github.ref }}
+        body: |
+          ## SchulBuddy Release ${{ github.ref }}
+          
+          ### Changes
+          - Automatisches Release erstellt von GitHub Actions
+          
+          ### Deployment
+          **Docker:**
+          ```bash
+          docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          ```
+          
+          **Python Package:**
+          Lade das `schulbuddy-package.tar.gz` aus den Assets herunter.
+        draft: false
+        prerelease: false
+    
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/schulbuddy-${{ github.sha }}.tar.gz
+        asset_name: schulbuddy-package.tar.gz
+        asset_content_type: application/gzip
