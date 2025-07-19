@@ -78,48 +78,74 @@ def create_app():
         """Health-Check-Endpoint für Container-Monitoring"""
         health_status = {"status": "healthy", "checks": {}}
         status_code = 200
-        
+
         try:
             # Test Flask App
-            health_status["checks"]["flask"] = {"status": "ok", "message": "Flask app running"}
-            
+            health_status["checks"]["flask"] = {
+                "status": "ok",
+                "message": "Flask app running",
+            }
+
             # Test Datenbank
             try:
                 with app.app_context():
                     result = db.session.execute("SELECT 1").scalar()
                     if result == 1:
-                        health_status["checks"]["database"] = {"status": "ok", "message": "Database connection successful"}
+                        health_status["checks"]["database"] = {
+                            "status": "ok",
+                            "message": "Database connection successful",
+                        }
                     else:
-                        health_status["checks"]["database"] = {"status": "warning", "message": "Database query returned unexpected result"}
+                        health_status["checks"]["database"] = {
+                            "status": "warning",
+                            "message": "Database query returned unexpected result",
+                        }
             except Exception as db_error:
-                health_status["checks"]["database"] = {"status": "error", "message": f"Database connection failed: {str(db_error)}"}
+                health_status["checks"]["database"] = {
+                    "status": "error",
+                    "message": f"Database connection failed: {str(db_error)}",
+                }
                 health_status["status"] = "degraded"
-                
+
             # Test Datenbankverzeichnis
             try:
-                db_path = app.config.get("SQLALCHEMY_DATABASE_URI", "").replace("sqlite:///", "")
+                db_path = app.config.get("SQLALCHEMY_DATABASE_URI", "").replace(
+                    "sqlite:///", ""
+                )
                 if db_path and not db_path.startswith(":memory:"):
                     db_dir = os.path.dirname(db_path)
                     if os.path.exists(db_dir):
-                        health_status["checks"]["db_directory"] = {"status": "ok", "message": f"Database directory exists: {db_dir}"}
+                        health_status["checks"]["db_directory"] = {
+                            "status": "ok",
+                            "message": f"Database directory exists: {db_dir}",
+                        }
                     else:
-                        health_status["checks"]["db_directory"] = {"status": "warning", "message": f"Database directory missing: {db_dir}"}
+                        health_status["checks"]["db_directory"] = {
+                            "status": "warning",
+                            "message": f"Database directory missing: {db_dir}",
+                        }
                 else:
-                    health_status["checks"]["db_directory"] = {"status": "ok", "message": "Using in-memory or relative database"}
+                    health_status["checks"]["db_directory"] = {
+                        "status": "ok",
+                        "message": "Using in-memory or relative database",
+                    }
             except Exception as dir_error:
-                health_status["checks"]["db_directory"] = {"status": "error", "message": f"Directory check failed: {str(dir_error)}"}
-                
+                health_status["checks"]["db_directory"] = {
+                    "status": "error",
+                    "message": f"Directory check failed: {str(dir_error)}",
+                }
+
             health_status["message"] = "SchulBuddy health check completed"
             health_status["timestamp"] = datetime.now().isoformat()
-            
+
         except Exception as e:
             health_status = {
-                "status": "unhealthy", 
+                "status": "unhealthy",
                 "message": f"Health check failed: {str(e)}",
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
             status_code = 500
-            
+
         return health_status, status_code
 
     # CLI-Kommando für automatische Bereinigung
