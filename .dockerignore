@@ -91,7 +91,7 @@ docs/
 README.md
 *.md
 
-# Scripts (nicht im Container benötigt)
+# Scripts (Setup-Skripte nicht im Container benötigt)
 scripts/
 schulbuddy.bat
 Makefile

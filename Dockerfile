@@ -31,7 +31,7 @@ RUN mkdir -p static/uploads instance data && \
     chmod 755 static/uploads instance data
 
 # Entrypoint script ausführbar machen
-RUN chmod +x scripts/entrypoint.sh
+RUN chmod +x entrypoint.sh
 
 # Umgebungsvariablen setzen
 ENV FLASK_APP=app.py
@@ -52,4 +52,4 @@ RUN adduser --disabled-password --gecos '' appuser && \
 USER appuser
 
 # Startkommando
-CMD ["./scripts/entrypoint.sh"]
+CMD ["./entrypoint.sh"]

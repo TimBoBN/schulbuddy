@@ -153,3 +153,6 @@ dmypy.json
 data/
 uploads/
 static/uploads/
+
+# Docker build artifacts (entrypoint.sh is copied from scripts/ for Docker)
+/entrypoint.sh
