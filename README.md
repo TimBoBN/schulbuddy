@@ -35,7 +35,7 @@ schulbuddy/
 
 ### 1. Repository klonen
 ```bash
-git clone <repository-url>
+git clone https://github.com/TimBoBN/schulbuddy.git
 cd schulbuddy
 ```
 
