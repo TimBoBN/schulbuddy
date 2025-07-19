@@ -21,8 +21,8 @@ def login():
         username = request.form.get("username")
         password = request.form.get("password")
         
-        # Benutzer suchen
-        user = User.query.filter_by(username=username).first()
+        # Benutzer mit case-insensitive Suche finden
+        user = User.find_by_username(username)
         
         if user and check_password_hash(user.password_hash, password):
             if user.two_factor_enabled:
@@ -65,8 +65,8 @@ def register():
             flash("Passwörter stimmen nicht überein", "error")
             return render_template("register.html")
         
-        # Prüfen ob Benutzer bereits existiert
-        if User.query.filter_by(username=username).first():
+        # Prüfen ob Benutzer bereits existiert (case-insensitive)
+        if User.find_by_username(username):
             flash("Benutzername bereits vergeben", "error")
             return render_template("register.html")
         
@@ -74,9 +74,10 @@ def register():
             flash("E-Mail bereits registriert", "error")
             return render_template("register.html")
         
-        # Benutzer erstellen
+        # Benutzer erstellen (Username normalisiert speichern)
+        normalized_username = username.strip()  # Leerzeichen entfernen, aber Groß-/Kleinschreibung beibehalten
         user = User(
-            username=username,
+            username=normalized_username,
             email=email,
             password_hash=generate_password_hash(password)
         )

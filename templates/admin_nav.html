@@ -19,6 +19,9 @@
                     <a href="{{ url_for('admin.admin_settings') }}" class="btn {% if request.endpoint == 'admin.admin_settings' %}btn-info{% else %}btn-outline-info{% endif %}">
                         <i class="fas fa-cogs"></i> Einstellungen
                     </a>
+                    <a href="{{ url_for('admin.admin_backup') }}" class="btn {% if request.endpoint == 'admin.admin_backup' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+                        <i class="fas fa-database"></i> Backup
+                    </a>
                 </div>
             </div>
         </div>
