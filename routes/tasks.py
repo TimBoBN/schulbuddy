@@ -365,7 +365,7 @@ def edit_task(task_id):
         flash("Aufgabe erfolgreich bearbeitet!", "success")
         return redirect(url_for('main.index'))
     
-    return render_template("edit_task.html", task=task)
+    return render_template("edit_task.html", task=task, subjects=Config.SUBJECTS)
 
 @tasks_bp.route("/archive")
 @login_required
