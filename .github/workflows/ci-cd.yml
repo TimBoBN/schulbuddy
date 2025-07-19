@@ -211,10 +211,20 @@ jobs:
       security-events: write
     
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build image for security scan
+      run: |
+        docker build -t schulbuddy:security-scan .
+    
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+        image-ref: 'schulbuddy:security-scan'
         format: 'sarif'
         output: 'trivy-results.sarif'
     
