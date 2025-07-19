@@ -14,8 +14,9 @@ class Config:
     DEBUG = True
 
     # SQLite Database
+    DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance", "schulbuddy.db")
     SQLALCHEMY_DATABASE_URI = (
-        os.environ.get("DATABASE_URL") or "sqlite:///instance/schulbuddy.db"
+        os.environ.get("DATABASE_URL") or f"sqlite:///{DATABASE_PATH}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
