@@ -1,12 +1,26 @@
 # SchulBuddy Docker Setup
 
-Eine Docker-Konfiguration für die SchulBuddy Flask-Anwendung mit vollständiger Produktions- und Development-Umgebung.
+**SchulBuddy** - Eine Flask-Anwendung für die Verwaltung von Schulaufgaben, Noten und Lernfortschritt.
+
+Dieses Repository enthält sowohl die **Python-Anwendung** als auch vollständige **Docker-Containerisierung** mit CI/CD-Pipeline.
+
+## 🚀 Deployment-Optionen
+
+**Wähle deine bevorzugte Methode:**
+
+| Methode | Schwierigkeit | Empfehlung |
+|---------|---------------|------------|
+| 🐳 **Docker Container** | ⭐ Einfach | Für Produktion und schnellen Start |
+| 🐍 **Python Direkt** | ⭐⭐ Mittel | Für Development und Anpassungen |
+| 🤖 **GitHub Actions** | ⭐⭐⭐ Automatisch | Für CI/CD und automatische Deployments |
+
+---
 
 ## 🚀 Schnellstart
 
 ### 1. Repository klonen und vorbereiten
 ```bash
-git clone <your-repo>
+git clone https://github.com/TimBoBN/schulbuddy.git
 cd schulbuddy
 ```
 
@@ -91,6 +105,17 @@ tar -xzf schulbuddy-python-package.tar.gz
 cd schulbuddy
 pip install -r requirements-frozen.txt
 python app.py
+
+# Oder direkt aus Repository
+git clone https://github.com/TimBoBN/schulbuddy.git
+cd schulbuddy
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate   # Windows
+pip install -r requirements.txt
+cp .env.example .env
+# .env bearbeiten (SECRET_KEY ändern!)
+python app.py
 ```
 
 **🚀 Deployment-Scripts für Server:**
@@ -151,6 +176,40 @@ docker pull ghcr.io/timbobn/schulbuddy:v1.0.0    # Specific version
 **📖 Vollständige Dokumentation:** Siehe [`deployment/README.md`](deployment/README.md)
 
 ## ⚙️ Konfiguration
+
+### 📁 Repository-Struktur
+```
+schulbuddy/
+├── 📁 .github/workflows/           # GitHub Actions CI/CD
+│   ├── ci-cd.yml                   # Kombinierte Pipeline
+│   ├── docker.yml                 # Docker-spezifisch
+│   └── python.yml                 # Python-spezifisch
+├── 📁 deployment/                  # Deployment Scripts
+│   ├── deploy-docker.sh            # Docker Server-Deployment
+│   ├── deploy-python.sh            # Python Server-Deployment
+│   └── README.md                   # Deployment-Dokumentation
+├── 📁 routes/                      # 🐍 Flask Routes
+├── 📁 static/                      # 🐍 Static Files (CSS, JS)
+├── 📁 templates/                   # 🐍 Jinja2 Templates
+├── 📁 instance/                    # 🐍 Database & User Data
+├── 📄 app.py                       # 🐍 Flask Hauptanwendung
+├── 📄 models.py                    # 🐍 SQLAlchemy Models
+├── 📄 config.py                    # 🐍 App Configuration
+├── 📄 requirements.txt             # 🐍 Python Dependencies
+├── 🐳 Dockerfile                   # Docker Produktions-Image
+├── 🐳 Dockerfile.dev               # Docker Development-Image  
+├── 🐳 docker-compose.yml           # Docker Standard-Setup
+├── 🐳 docker-compose.dev.yml       # Docker Development
+├── 🐳 docker-compose.prod.yml      # Docker Produktion
+├── 🔧 start.sh                     # Linux/Mac Start-Script
+├── 🔧 start.ps1                    # Windows Start-Script
+└── 📋 README.md                    # Diese Dokumentation
+```
+
+**🎯 Flexibilität:** Du kannst SchulBuddy auf drei Arten verwenden:
+1. **🐳 Docker** - Einfach und konsistent (empfohlen)
+2. **🐍 Python** - Direkt auf deinem System  
+3. **🤖 Automatisch** - Via GitHub Actions deployment
 
 ### 📁 Dateienübersicht
 ```
@@ -217,6 +276,41 @@ Die Docker-Konfiguration nutzt Volumes für:
 - Port 443: Nginx Reverse Proxy (HTTPS)
 
 ## 🔧 Entwicklung
+
+### 🐍 Python Development (ohne Docker)
+
+**Setup:**
+```bash
+# Repository klonen
+git clone https://github.com/TimBoBN/schulbuddy.git
+cd schulbuddy
+
+# Virtual Environment erstellen
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate   # Windows
+
+# Dependencies installieren
+pip install -r requirements.txt
+
+# Environment setup
+cp .env.example .env
+# .env bearbeiten - SECRET_KEY ändern!
+
+# Datenbank initialisieren
+python init_db.py
+
+# Development Server starten
+python app.py
+```
+
+**Development Features:**
+- 🔄 Hot-Reload mit Flask Debug-Modus
+- 🐛 Direkter Zugriff auf Python-Debugger
+- 📝 Logs direkt in der Konsole
+- 💾 Lokale Datei-Bearbeitung ohne Container
+
+### 🐳 Docker Development
 
 ### Quick Commands
 

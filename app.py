@@ -15,6 +15,10 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
+    # Sicherstellen dass notwendige Verzeichnisse existieren
+    os.makedirs(os.path.dirname(app.config.get('SQLALCHEMY_DATABASE_URI', '').replace('sqlite:///', '')), exist_ok=True)
+    os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+    
     # Datenbank initialisieren
     with app.app_context():
         init_db(app)
@@ -29,10 +33,6 @@ def create_app():
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
-    
-    # Upload-Ordner erstellen
-    if not os.path.exists(Config.UPLOAD_FOLDER):
-        os.makedirs(Config.UPLOAD_FOLDER)
     
     # Routes registrieren
     register_routes(app)

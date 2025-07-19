@@ -16,8 +16,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # App-Code kopieren
 COPY . .
 
-# Uploads-Ordner erstellen und Berechtigungen setzen
-RUN mkdir -p static/uploads && chmod 755 static/uploads
+# Entrypoint-Skript ausführbar machen
+RUN chmod +x docker-entrypoint.sh
+
+# Notwendige Verzeichnisse erstellen
+RUN mkdir -p static/uploads instance data && \
+    chmod 755 static/uploads instance data
 
 # Port für Flask
 EXPOSE 5000
@@ -31,10 +35,10 @@ ENV PYTHONPATH=/app
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
-# Non-root user erstellen
+# Non-root user erstellen (wichtig für Sicherheit)
 RUN adduser --disabled-password --gecos '' appuser && \
     chown -R appuser:appuser /app
 USER appuser
 
-# App starten
-CMD ["python", "-m", "flask", "run", "--host=0.0.0.0", "--port=5000"]
+# App starten mit Entrypoint-Skript
+ENTRYPOINT ["./docker-entrypoint.sh"]
