@@ -9,31 +9,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_N    - name: Upload Python package
-      uses: actions/upload-artifact@v4
-      with:
-        name: schul    - name: Create Release
-      uses: softprops/action-gh-release@v2
-      id: create_release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref_name }}
-        name: SchulBuddy ${{ github.ref_name }}
-        body: |
-          ## 🎓 SchulBuddy Release ${{ github.ref_name }}
-          
-          ### 📦 Verfügbare Deployment-Optionen:
-          
-          #### 🐳 Docker Container (Empfohlen)
-          ```bash
-          # GitHub Container Registry
-          docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}
-          
-          ```e
-        path: |
-          dist/
-          requirements-frozen.txt{ github.repository }}
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   # Python Tests zuerst ausführen
@@ -109,7 +85,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
@@ -226,6 +202,46 @@ jobs:
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+
+  # Multi-platform build (nur für Releases)
+  docker-build-multiplatform:
+    needs: [docker-build, docker-test]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+    
+    - name: Build and push multi-platform Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
   # Deployment Jobs
   deploy-staging:
