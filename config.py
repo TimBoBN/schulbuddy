@@ -13,7 +13,7 @@ class Config:
     DEBUG = True
     
     # SQLite Database
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///schulbuddy.db'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///instance/schulbuddy.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Session-Konfiguration

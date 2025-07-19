@@ -56,6 +56,14 @@ check_docker() {
     fi
 }
 
+get_port() {
+    # Port aus .env Datei lesen, Standard ist 5000
+    if [ -f ".env" ]; then
+        PORT=$(grep "^PORT=" .env | cut -d= -f2 | tr -d ' ')
+    fi
+    echo "${PORT:-5000}"
+}
+
 setup() {
     if [[ ! -f .env ]]; then
         cp .env.example .env
@@ -78,9 +86,10 @@ build() {
 }
 
 up() {
+    PORT=$(get_port)
     echo -e "${BLUE}🚀 Starte SchulBuddy...${NC}"
     docker-compose up -d
-    echo -e "${GREEN}✅ SchulBuddy gestartet: http://localhost:5000${NC}"
+    echo -e "${GREEN}✅ SchulBuddy gestartet: http://localhost:${PORT}${NC}"
 }
 
 down() {
@@ -97,7 +106,8 @@ dev() {
 nginx() {
     echo -e "${BLUE}🔗 Starte mit Nginx Reverse Proxy...${NC}"
     docker-compose --profile with-nginx up -d
-    echo -e "${GREEN}✅ SchulBuddy mit Nginx gestartet: http://localhost${NC}"
+    local port=$(get_port)
+    echo -e "${GREEN}✅ SchulBuddy mit Nginx gestartet: http://localhost:$port${NC}"
 }
 
 prod() {
@@ -123,8 +133,9 @@ shell() {
 
 health() {
     echo -e "${BLUE}🏥 Prüfe Anwendungsstatus...${NC}"
-    if curl -s -f http://localhost:5000/health > /dev/null 2>&1; then
-        response=$(curl -s http://localhost:5000/health)
+    local port=$(get_port)
+    if curl -s -f http://localhost:$port/health > /dev/null 2>&1; then
+        response=$(curl -s http://localhost:$port/health)
         echo -e "${GREEN}✅ Health-Check erfolgreich:${NC}"
         echo "$response" | python3 -m json.tool 2>/dev/null || echo "$response"
     else

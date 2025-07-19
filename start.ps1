@@ -3,6 +3,17 @@ param(
     [string]$Action = "help"
 )
 
+function Get-Port {
+    # Port aus .env Datei lesen, Standard ist 5000
+    if (Test-Path ".env") {
+        $envContent = Get-Content ".env" | Where-Object { $_ -like "PORT=*" }
+        if ($envContent) {
+            return ($envContent -split "=")[1]
+        }
+    }
+    return "5000"
+}
+
 function Show-Help {
     Write-Host "SchulBuddy Docker Commands:" -ForegroundColor Cyan
     Write-Host ""
@@ -37,7 +48,8 @@ switch ($Action.ToLower()) {
     }
     "up" {
         docker-compose up -d
-        Write-Host "🚀 SchulBuddy gestartet: http://localhost:5000" -ForegroundColor Green
+        $port = Get-Port
+        Write-Host "🚀 SchulBuddy gestartet: http://localhost:$port" -ForegroundColor Green
     }
     "down" {
         docker-compose down
@@ -47,7 +59,8 @@ switch ($Action.ToLower()) {
     }
     "nginx" {
         docker-compose --profile with-nginx up -d
-        Write-Host "🚀 SchulBuddy mit Nginx gestartet: http://localhost" -ForegroundColor Green
+        $port = Get-Port
+        Write-Host "🚀 SchulBuddy mit Nginx gestartet: http://localhost:$port" -ForegroundColor Green
     }
     "logs" {
         docker-compose logs -f
@@ -56,8 +69,9 @@ switch ($Action.ToLower()) {
         docker-compose exec schulbuddy bash
     }
     "health" {
+        $port = Get-Port
         try {
-            $response = Invoke-RestMethod -Uri "http://localhost:5000/health"
+            $response = Invoke-RestMethod -Uri "http://localhost:$port/health"
             Write-Host "✅ Health-Check erfolgreich:" -ForegroundColor Green
             Write-Host ($response | ConvertTo-Json)
         } catch {
