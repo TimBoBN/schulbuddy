@@ -3,6 +3,11 @@
 # SchulBuddy Docker Setup Script
 echo "🚀 SchulBuddy Docker Setup wird gestartet..."
 
+# Wechsle zum Projekt-Hauptverzeichnis
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_DIR"
+
 # Prüfe ob .env existiert
 if [ -f ".env" ]; then
     echo "⚠️  .env-Datei existiert bereits!"
@@ -15,16 +20,16 @@ if [ -f ".env" ]; then
 fi
 
 # Erstelle .env von Template
-if [ -f ".env.template" ]; then
-    echo "📋 Erstelle .env-Datei von .env.template..."
-    cp .env.template .env
+if [ -f "config/.env.template" ]; then
+    echo "📋 Erstelle .env-Datei von config/.env.template..."
+    cp config/.env.template .env
     echo "✅ .env-Datei erfolgreich erstellt!"
-elif [ -f ".env.example" ]; then
-    echo "📋 Erstelle .env-Datei von .env.example..."
-    cp .env.example .env
+elif [ -f "config/.env.example" ]; then
+    echo "📋 Erstelle .env-Datei von config/.env.example..."
+    cp config/.env.example .env
     echo "✅ .env-Datei erfolgreich erstellt!"
 else
-    echo "❌ Keine Vorlage gefunden! .env.template oder .env.example fehlt."
+    echo "❌ Keine Vorlage gefunden! config/.env.template oder config/.env.example fehlt."
     exit 1
 fi
 
@@ -77,4 +82,4 @@ echo "   1. Prüfen Sie die .env-Datei: nano .env"
 echo "   2. Starten Sie die Anwendung: docker-compose up -d"
 echo "   3. Öffnen Sie: http://localhost:$port"
 echo ""
-echo "📚 Weitere Hilfe: cat PORT_CONFIG.md"
+echo "📚 Weitere Hilfe: cat docs/PORT_CONFIG.md"
