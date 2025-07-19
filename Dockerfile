@@ -30,8 +30,30 @@ COPY . .
 RUN mkdir -p static/uploads instance data && \
     chmod 755 static/uploads instance data
 
-# Entrypoint script ausführbar machen
-RUN chmod +x entrypoint.sh
+# Entrypoint script erstellen
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+echo "🚀 Starting SchulBuddy Container..."\n\
+\n\
+# Verzeichnisse erstellen und Berechtigungen setzen\n\
+mkdir -p /app/data /app/static/uploads\n\
+\n\
+# Environment variables anzeigen\n\
+echo "Environment: DOCKER_ENV=$DOCKER_ENV"\n\
+echo "Database: $DATABASE_URL"\n\
+echo "Port: $PORT"\n\
+\n\
+# Datenbank initialisieren falls nötig\n\
+if [ ! -f "/app/data/schulbuddy.db" ]; then\n\
+    echo "📋 Initializing database..."\n\
+    python /app/init_db.py\n\
+fi\n\
+\n\
+# App starten\n\
+echo "🎓 Starting SchulBuddy on port $PORT..."\n\
+exec python /app/app.py\n\
+' > entrypoint.sh && chmod +x entrypoint.sh
 
 # Umgebungsvariablen setzen
 ENV FLASK_APP=app.py
