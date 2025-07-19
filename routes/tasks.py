@@ -9,6 +9,7 @@ import os
 
 from models import Task, Grade, db, ActivityLog, UserStatistic
 from config import Config
+from config import Config
 from api_security import api_key_or_login_required
 
 tasks_bp = Blueprint('tasks', __name__)
@@ -339,7 +340,7 @@ def edit_task(task_id):
                 task.due_date = datetime.strptime(due_date_str, "%Y-%m-%d").date()
             except ValueError:
                 flash("Ungültiges Datum", "error")
-                return render_template("edit_task.html", task=task)
+                return render_template("edit_task.html", task=task, subjects=Config.SUBJECTS)
         
         # Neue Datei hochladen
         if 'file' in request.files:
@@ -365,7 +366,7 @@ def edit_task(task_id):
         flash("Aufgabe erfolgreich bearbeitet!", "success")
         return redirect(url_for('main.index'))
     
-    return render_template("edit_task.html", task=task)
+    return render_template("edit_task.html", task=task, subjects=Config.SUBJECTS)
 
 @tasks_bp.route("/archive")
 @login_required

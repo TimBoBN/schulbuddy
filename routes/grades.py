@@ -1,6 +1,7 @@
 """
 Grade-related routes for SchulBuddy
 """
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime
@@ -9,7 +10,8 @@ from collections import defaultdict
 from models import Grade, Task, db
 from config import Config
 
-grades_bp = Blueprint('grades', __name__)
+grades_bp = Blueprint("grades", __name__)
+
 
 @grades_bp.route("/add_grade", methods=["POST"])
 @login_required
@@ -19,28 +21,28 @@ def add_grade():
     grade_value = request.form.get("grade")
     grade_type = request.form.get("grade_type", "test")
     description = request.form.get("description", "")
-    
+
     try:
         grade_value = float(grade_value)
         if grade_value < 1 or grade_value > 6:
             flash("Note muss zwischen 1 und 6 liegen", "error")
-            return redirect(url_for('main.index'))
+            return redirect(url_for("main.index"))
     except ValueError:
         flash("Ungültige Note", "error")
-        return redirect(url_for('main.index'))
-    
+        return redirect(url_for("main.index"))
+
     # Note erstellen
     grade = Grade(
         subject=subject,
         grade=grade_value,
         grade_type=grade_type,
         description=description,
-        user_id=current_user.id
+        user_id=current_user.id,
     )
-    
+
     db.session.add(grade)
     db.session.commit()
-    
+
     # Punkte für Note hinzufügen
     if grade_value <= 2.0:
         points = 15
@@ -50,16 +52,21 @@ def add_grade():
         points = 5
     else:
         points = 2
-    
-    current_user.add_points(points, 'grade_added', {
-        'grade_id': grade.id,
-        'subject': subject,
-        'grade': grade_value,
-        'grade_type': grade_type
-    })
-    
+
+    current_user.add_points(
+        points,
+        "grade_added",
+        {
+            "grade_id": grade.id,
+            "subject": subject,
+            "grade": grade_value,
+            "grade_type": grade_type,
+        },
+    )
+
     flash(f"Note erfolgreich hinzugefügt! +{points} Punkte", "success")
-    return redirect(url_for('main.index'))
+    return redirect(url_for("main.index"))
+
 
 @grades_bp.route("/delete_note/<int:note_id>", methods=["POST"])
 @login_required
@@ -67,13 +74,14 @@ def delete_note(note_id):
     """Note löschen"""
     grade = Grade.query.filter_by(id=note_id, user_id=current_user.id).first()
     if not grade:
-        return jsonify({'success': False, 'message': 'Note nicht gefunden'})
-    
+        return jsonify({"success": False, "message": "Note nicht gefunden"})
+
     db.session.delete(grade)
     db.session.commit()
-    
+
     flash("Note erfolgreich gelöscht!", "success")
-    return jsonify({'success': True})
+    return jsonify({"success": True})
+
 
 @grades_bp.route("/add_grade_to_task/<int:task_id>", methods=["GET", "POST"])
 @login_required
@@ -82,12 +90,12 @@ def add_grade_to_task(task_id):
     task = Task.query.filter_by(id=task_id, user_id=current_user.id).first()
     if not task:
         flash("Aufgabe nicht gefunden", "error")
-        return redirect(url_for('main.index'))
-    
+        return redirect(url_for("main.index"))
+
     if request.method == "POST":
         grade_value = request.form.get("grade")
         description = request.form.get("description", "")
-        
+
         try:
             grade_value = float(grade_value)
             if grade_value < 1 or grade_value > 6:
@@ -96,7 +104,7 @@ def add_grade_to_task(task_id):
         except ValueError:
             flash("Ungültige Note", "error")
             return render_template("add_grade_to_task.html", task=task)
-        
+
         # Note erstellen
         grade = Grade(
             subject=task.subject,
@@ -104,12 +112,12 @@ def add_grade_to_task(task_id):
             grade_type="task",
             description=description,
             task_id=task.id,
-            user_id=current_user.id
+            user_id=current_user.id,
         )
-        
+
         db.session.add(grade)
         db.session.commit()
-        
+
         # Punkte für Note hinzufügen
         if grade_value <= 2.0:
             points = 15
@@ -119,45 +127,52 @@ def add_grade_to_task(task_id):
             points = 5
         else:
             points = 2
-        
-        current_user.add_points(points, 'grade_added', {
-            'grade_id': grade.id,
-            'task_id': task.id,
-            'subject': task.subject,
-            'grade': grade_value
-        })
-        
+
+        current_user.add_points(
+            points,
+            "grade_added",
+            {
+                "grade_id": grade.id,
+                "task_id": task.id,
+                "subject": task.subject,
+                "grade": grade_value,
+            },
+        )
+
         flash(f"Note erfolgreich hinzugefügt! +{points} Punkte", "success")
-        return redirect(url_for('main.index'))
-    
+        return redirect(url_for("main.index"))
+
     return render_template("add_grade_to_task.html", task=task)
+
 
 @grades_bp.route("/semester_grades")
 @login_required
 def semester_grades():
     """Semester-Noten anzeigen"""
     # Parameter aus URL
-    semester = int(request.args.get('semester', 2))  # Standard: 2. Halbjahr
-    school_year = request.args.get('school_year', '2025')
-    
+    semester = int(request.args.get("semester", 2))  # Standard: 2. Halbjahr
+    school_year = request.args.get("school_year", "2025")
+
     # Alle Noten des Users
     all_grades = Grade.query.filter_by(user_id=current_user.id).all()
-    
+
     # Filtere nach Halbjahr und Schuljahr
     semester_grades = []
     for grade in all_grades:
         grade_year = str(grade.timestamp.year)
         # Vereinfacht: 1. Halbjahr = Aug-Jan, 2. Halbjahr = Feb-Jul
-        grade_semester = 1 if grade.timestamp.month >= 8 or grade.timestamp.month <= 1 else 2
-        
+        grade_semester = (
+            1 if grade.timestamp.month >= 8 or grade.timestamp.month <= 1 else 2
+        )
+
         if grade_year == school_year and grade_semester == semester:
             semester_grades.append(grade)
-    
+
     # Gruppiere nach Fach
     grades_by_subject = defaultdict(list)
     for grade in semester_grades:
         grades_by_subject[grade.subject].append(grade)
-    
+
     # Berechne Durchschnitte pro Fach
     subject_averages = {}
     durchschnitt = {}
@@ -166,86 +181,97 @@ def semester_grades():
             avg = sum(g.grade for g in subject_grades) / len(subject_grades)
             subject_averages[subject] = round(avg, 2)
             durchschnitt[subject] = {
-                'average': round(avg, 2),
-                'count': len(subject_grades)
+                "average": round(avg, 2),
+                "count": len(subject_grades),
             }
-    
+
     # Zeugnis-Durchschnitt (nur Zeugnisnoten)
-    certificate_grades = [g for g in semester_grades if g.grade_type == 'certificate']
+    certificate_grades = [g for g in semester_grades if g.grade_type == "certificate"]
     if certificate_grades:
-        total_average = sum(g.grade for g in certificate_grades) / len(certificate_grades)
+        total_average = sum(g.grade for g in certificate_grades) / len(
+            certificate_grades
+        )
         total_average = round(total_average, 2)
     else:
         total_average = 0
-    
+
     # Gesamtdurchschnitt aller Noten
     if semester_grades:
         overall_average = sum(g.grade for g in semester_grades) / len(semester_grades)
         overall_average = round(overall_average, 2)
     else:
         overall_average = 0
-    
-    return render_template("semester_grades.html",
-                         grades_by_subject=dict(grades_by_subject),
-                         subject_averages=subject_averages,
-                         durchschnitt=durchschnitt,
-                         overall_average=overall_average,
-                         total_average=total_average,
-                         semester=semester,
-                         school_year=school_year,
-                         subjects=Config.SUBJECTS,
-                         grades=semester_grades)
+
+    return render_template(
+        "semester_grades.html",
+        grades_by_subject=dict(grades_by_subject),
+        subject_averages=subject_averages,
+        durchschnitt=durchschnitt,
+        overall_average=overall_average,
+        total_average=total_average,
+        semester=semester,
+        school_year=school_year,
+        subjects=Config.SUBJECTS,
+        grades=semester_grades,
+    )
+
 
 @grades_bp.route("/certificate_grades")
 @login_required
 def certificate_grades():
     """Zeugnis-Noten anzeigen"""
     certificate_grades = Grade.query.filter_by(
-        user_id=current_user.id,
-        grade_type="certificate"
+        user_id=current_user.id, grade_type="certificate"
     ).all()
-    
+
     # Gruppiere nach Schuljahr und Halbjahr
-    grades_by_period = defaultdict(lambda: {'grades': [], 'average': 0})
-    
+    grades_by_period = defaultdict(lambda: {"grades": [], "average": 0})
+
     for grade in certificate_grades:
         # Verwende das Jahr der Note als Schuljahr
         school_year = grade.timestamp.year
         # Vereinfacht: 1. Halbjahr = Aug-Jan, 2. Halbjahr = Feb-Jul
         semester = 1 if grade.timestamp.month >= 8 or grade.timestamp.month <= 1 else 2
-        
+
         period_key = f"{school_year}-{semester}"
-        grades_by_period[period_key]['grades'].append(grade)
-        grades_by_period[period_key]['school_year'] = school_year
-        grades_by_period[period_key]['semester'] = semester
-    
+        grades_by_period[period_key]["grades"].append(grade)
+        grades_by_period[period_key]["school_year"] = school_year
+        grades_by_period[period_key]["semester"] = semester
+
     # Berechne Durchschnitt für jede Periode
     for period_key, period_data in grades_by_period.items():
-        if period_data['grades']:
-            average = sum(g.grade for g in period_data['grades']) / len(period_data['grades'])
-            period_data['average'] = round(average, 2)
-    
+        if period_data["grades"]:
+            average = sum(g.grade for g in period_data["grades"]) / len(
+                period_data["grades"]
+            )
+            period_data["average"] = round(average, 2)
+
     # Gesamtdurchschnitt
     if certificate_grades:
-        overall_average = sum(g.grade for g in certificate_grades) / len(certificate_grades)
+        overall_average = sum(g.grade for g in certificate_grades) / len(
+            certificate_grades
+        )
         overall_average = round(overall_average, 2)
     else:
         overall_average = 0
-    
-    return render_template("certificate_grades.html",
-                         grades_by_period=grades_by_period,
-                         overall_average=overall_average,
-                         subjects=Config.SUBJECTS)
 
-@grades_bp.route("/add_certificate_grades", methods=['GET', 'POST'])
+    return render_template(
+        "certificate_grades.html",
+        grades_by_period=grades_by_period,
+        overall_average=overall_average,
+        subjects=Config.SUBJECTS,
+    )
+
+
+@grades_bp.route("/add_certificate_grades", methods=["GET", "POST"])
 @login_required
 def add_certificate_grades():
     """Zeugnis-Noten hinzufügen"""
-    if request.method == 'POST':
+    if request.method == "POST":
         grades_added = 0
-        
+
         for subject_key, subject_name in Config.SUBJECTS.items():
-            grade_value = request.form.get(f'grade_{subject_key}')
+            grade_value = request.form.get(f"grade_{subject_key}")
             if grade_value:
                 try:
                     grade_value = float(grade_value)
@@ -254,9 +280,9 @@ def add_certificate_grades():
                         existing_grade = Grade.query.filter_by(
                             user_id=current_user.id,
                             subject=subject_key,
-                            grade_type='certificate'
+                            grade_type="certificate",
                         ).first()
-                        
+
                         if existing_grade:
                             # Update existing grade
                             existing_grade.grade = grade_value
@@ -266,107 +292,121 @@ def add_certificate_grades():
                             grade = Grade(
                                 subject=subject_key,
                                 grade=grade_value,
-                                grade_type='certificate',
-                                description='Zeugnisnote',
-                                user_id=current_user.id
+                                grade_type="certificate",
+                                description="Zeugnisnote",
+                                user_id=current_user.id,
                             )
                             db.session.add(grade)
-                        
+
                         grades_added += 1
                 except ValueError:
                     flash(f"Ungültige Note für {subject_name}", "error")
-                    return redirect(url_for('grades.add_certificate_grades'))
-        
+                    return redirect(url_for("grades.add_certificate_grades"))
+
         if grades_added > 0:
             db.session.commit()
             flash(f"{grades_added} Zeugnis-Noten erfolgreich gespeichert!", "success")
         else:
             flash("Keine Noten eingegeben", "warning")
-        
-        return redirect(url_for('grades.certificate_grades'))
-    
+
+        return redirect(url_for("grades.certificate_grades"))
+
     # Lade existierende Zeugnisnoten
     existing_grades = {}
     certificate_grades = Grade.query.filter_by(
-        user_id=current_user.id,
-        grade_type='certificate'
+        user_id=current_user.id, grade_type="certificate"
     ).all()
-    
+
     for grade in certificate_grades:
         existing_grades[grade.subject] = grade.grade
-    
-    return render_template('add_certificate_grades.html', 
-                         subjects=Config.SUBJECTS,
-                         existing_grades=existing_grades)
+
+    return render_template(
+        "add_certificate_grades.html",
+        subjects=Config.SUBJECTS,
+        existing_grades=existing_grades,
+    )
+
 
 @grades_bp.route("/grade_progress")
 @login_required
 def grade_progress():
     """Notenentwicklung anzeigen"""
-    grades = Grade.query.filter_by(user_id=current_user.id).order_by(Grade.timestamp).all()
-    
+    grades = (
+        Grade.query.filter_by(user_id=current_user.id).order_by(Grade.timestamp).all()
+    )
+
     # Gruppiere nach Fach und sortiere chronologisch
     grades_by_subject = defaultdict(list)
     for grade in grades:
         grades_by_subject[grade.subject].append(grade)
-    
+
     # Erstelle progress_data Struktur für Template
     progress_data = {}
     for subject, subject_grades in grades_by_subject.items():
         # Trenne nach Noten-Typ
-        regular_grades = [g for g in subject_grades if g.grade_type in ['normal', 'test']]
-        certificate_grades = [g for g in subject_grades if g.grade_type == 'certificate']
-        
+        regular_grades = [
+            g for g in subject_grades if g.grade_type in ["normal", "test"]
+        ]
+        certificate_grades = [
+            g for g in subject_grades if g.grade_type == "certificate"
+        ]
+
         # Nur Fächer hinzufügen, die tatsächlich Noten haben
         if regular_grades or certificate_grades:
             progress_data[subject] = {
-                'regular_grades': regular_grades,
-                'final_grades': certificate_grades  # Template erwartet 'final_grades'
+                "regular_grades": regular_grades,
+                "final_grades": certificate_grades,  # Template erwartet 'final_grades'
             }
-    
+
     # Berechne Trends
     subject_trends = {}
     for subject, subject_grades in grades_by_subject.items():
         if len(subject_grades) >= 2:
             first_grade = subject_grades[0].grade
             last_grade = subject_grades[-1].grade
-            
+
             if last_grade < first_grade:
                 trend = "improving"
             elif last_grade > first_grade:
                 trend = "declining"
             else:
                 trend = "stable"
-            
+
             subject_trends[subject] = {
-                'trend': trend,
-                'first_grade': first_grade,
-                'last_grade': last_grade,
-                'improvement': round(first_grade - last_grade, 2)
+                "trend": trend,
+                "first_grade": first_grade,
+                "last_grade": last_grade,
+                "improvement": round(first_grade - last_grade, 2),
             }
-    
+
     # Berechne Semester-Durchschnitte
-    semester_averages = defaultdict(lambda: {'grades': [], 'average': 0, 'school_year': 0, 'semester': 0})
-    
+    semester_averages = defaultdict(
+        lambda: {"grades": [], "average": 0, "school_year": 0, "semester": 0}
+    )
+
     for grade in grades:
         # Verwende das Jahr der Note als Schuljahr
         school_year = grade.timestamp.year
         # Vereinfacht: 1. Halbjahr = Aug-Jan, 2. Halbjahr = Feb-Jul
         semester = 1 if grade.timestamp.month >= 8 or grade.timestamp.month <= 1 else 2
-        
+
         period_key = f"{school_year}-{semester}"
-        semester_averages[period_key]['grades'].append(grade)
-        semester_averages[period_key]['school_year'] = school_year
-        semester_averages[period_key]['semester'] = semester
-    
+        semester_averages[period_key]["grades"].append(grade)
+        semester_averages[period_key]["school_year"] = school_year
+        semester_averages[period_key]["semester"] = semester
+
     # Berechne Durchschnitt für jede Periode
     for period_key, period_data in semester_averages.items():
-        if period_data['grades']:
-            average = sum(g.grade for g in period_data['grades']) / len(period_data['grades'])
-            period_data['average'] = round(average, 2)
-    
-    return render_template("grade_progress.html",
-                         grades_by_subject=dict(grades_by_subject),
-                         subject_trends=subject_trends,
-                         semester_averages=dict(semester_averages),
-                         progress_data=progress_data)
+        if period_data["grades"]:
+            average = sum(g.grade for g in period_data["grades"]) / len(
+                period_data["grades"]
+            )
+            period_data["average"] = round(average, 2)
+
+    return render_template(
+        "grade_progress.html",
+        grades_by_subject=dict(grades_by_subject),
+        subject_trends=subject_trends,
+        semester_averages=dict(semester_averages),
+        progress_data=progress_data,
+    )

@@ -6,4 +6,9 @@ pyotp==2.8.0
 qrcode[pil]==7.4.2
 reportlab==4.0.4
 pandas==2.0.3
+<<<<<<< HEAD
 requests==2.31.0
+=======
+gunicorn==21.2.0
+psycopg2-binary==2.9.7
+>>>>>>> 04627b963babc5ecf9f1ddb34bf0f7bd3421bfff
