@@ -12,7 +12,6 @@ class Config:
     # Flask Settings
     SECRET_KEY = os.environ.get("SECRET_KEY") or "schulbuddy-secret-key"
     DEBUG = True
-<<<<<<< HEAD
     
     # Server Configuration
     HOST = os.environ.get('HOST', '0.0.0.0')
@@ -25,16 +24,10 @@ class Config:
         default_db_path = 'sqlite:////app/data/schulbuddy.db'
     else:
         # Lokal: verwende instance-Verzeichnis
-        default_db_path = 'sqlite:///instance/schulbuddy.db'
+        DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance", "schulbuddy.db")
+        default_db_path = f'sqlite:///{DATABASE_PATH}'
+    
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or default_db_path
-=======
-
-    # SQLite Database
-    DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance", "schulbuddy.db")
-    SQLALCHEMY_DATABASE_URI = (
-        os.environ.get("DATABASE_URL") or f"sqlite:///{DATABASE_PATH}"
-    )
->>>>>>> 04627b963babc5ecf9f1ddb34bf0f7bd3421bfff
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Session-Konfiguration
