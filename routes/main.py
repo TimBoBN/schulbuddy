@@ -13,6 +13,12 @@ from utils.app_settings import get_current_school_year, get_current_semester, ge
 
 main_bp = Blueprint('main', __name__)
 
+@main_bp.route("/health")
+def health_check():
+    """Health check endpoint for Docker"""
+    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}, 200
+
+
 @main_bp.route("/")
 @login_required
 def index():

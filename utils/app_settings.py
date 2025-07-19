@@ -2,6 +2,13 @@
 Utility-Funktionen für SchulBuddy
 """
 
+def normalize_username(username):
+    """Normalisiert einen Benutzernamen für case-insensitive Vergleiche"""
+    if not username:
+        return None
+    # Leerzeichen am Anfang und Ende entfernen, dann in Kleinbuchstaben umwandeln
+    return username.strip().lower()
+
 def get_current_school_year():
     """Hole das aktuelle Schuljahr aus den App-Einstellungen"""
     try:
