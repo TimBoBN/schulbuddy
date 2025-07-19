@@ -188,7 +188,9 @@ def admin_settings():
                 'enable_2fa': request.form.get('enable_2fa') == 'on',
                 'require_2fa': request.form.get('require_2fa') == 'on',
                 'enable_gamification': request.form.get('enable_gamification') == 'on',
-                'enable_notifications': request.form.get('enable_notifications') == 'on'
+                'enable_notifications': request.form.get('enable_notifications') == 'on',
+                'current_school_year': request.form.get('current_school_year', '2025/26'),
+                'current_semester': request.form.get('current_semester', '1')
             }
             
             for key, value in settings.items():
@@ -214,7 +216,9 @@ def admin_settings():
         'enable_2fa': AppSettings.get_setting('enable_2fa', 'False') == 'True',
         'require_2fa': AppSettings.get_setting('require_2fa', 'False') == 'True',
         'enable_gamification': AppSettings.get_setting('enable_gamification', 'True') == 'True',
-        'enable_notifications': AppSettings.get_setting('enable_notifications', 'True') == 'True'
+        'enable_notifications': AppSettings.get_setting('enable_notifications', 'True') == 'True',
+        'current_school_year': AppSettings.get_setting('current_school_year', '2025/26'),
+        'current_semester': AppSettings.get_setting('current_semester', '1')
     }
     
     return render_template("admin_settings.html", settings=settings)

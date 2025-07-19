@@ -46,6 +46,26 @@ def create_app():
             deleted_count = auto_cleanup_old_tasks()
             print(f"Bereinigung abgeschlossen: {deleted_count} Aufgaben gelöscht")
     
+    @app.cli.command()
+    def cleanup_old_sessions():
+        """CLI-Kommando zum Bereinigen alter Timer-Sessions"""
+        from routes.timer import auto_cleanup_old_sessions
+        with app.app_context():
+            deleted_count = auto_cleanup_old_sessions()
+            print(f"Timer-Sessions Bereinigung abgeschlossen: {deleted_count} Sessions gelöscht")
+    
+    @app.cli.command()
+    def cleanup_all():
+        """CLI-Kommando zum Bereinigen aller alten Daten"""
+        from routes.tasks import auto_cleanup_old_tasks
+        from routes.timer import auto_cleanup_old_sessions
+        with app.app_context():
+            tasks_deleted = auto_cleanup_old_tasks()
+            sessions_deleted = auto_cleanup_old_sessions()
+            print(f"Vollständige Bereinigung abgeschlossen:")
+            print(f"- {tasks_deleted} Aufgaben gelöscht")
+            print(f"- {sessions_deleted} Timer-Sessions gelöscht")
+    
     return app
 
 def main():

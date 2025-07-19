@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Timer-Verlauf - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-history"></i> Timer-Verlauf</h2>
+                <a href="{{ url_for('timer.timer_page') }}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Zurück zum Timer
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            {% if sessions.items %}
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Datum & Zeit</th>
+                                    <th>Typ</th>
+                                    <th>Fach</th>
+                                    <th>Aufgabe</th>
+                                    <th>Geplant</th>
+                                    <th>Tatsächlich</th>
+                                    <th>Punkte</th>
+                                    <th>Notizen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in sessions.items %}
+                                <tr>
+                                    <td>
+                                        <div>{{ session.start_time.strftime('%d.%m.%Y') }}</div>
+                                        <small class="text-muted">{{ session.start_time.strftime('%H:%M') }} - {{ session.end_time.strftime('%H:%M') if session.end_time else 'läuft...' }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ session.session_type.replace('_', ' ').title() }}</span>
+                                    </td>
+                                    <td>
+                                        {% if session.subject %}
+                                            <span class="badge bg-secondary">{{ session.subject }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if session.task %}
+                                            <a href="{{ url_for('tasks.edit_task', task_id=session.task.id) }}" class="text-decoration-none">
+                                                {{ session.task.title }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if session.duration_minutes %}
+                                            {{ session.duration_minutes }} Min
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">{{ session.duration_display }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning">+{{ session._calculate_points() }}</span>
+                                    </td>
+                                    <td>
+                                        {% if session.notes %}
+                                            <small>{{ session.notes[:50] }}{% if session.notes|length > 50 %}...{% endif %}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if sessions.pages > 1 %}
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            {% if sessions.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('timer.timer_history', page=sessions.prev_num) }}">Zurück</a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page_num in sessions.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != sessions.page %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('timer.timer_history', page=page_num) }}">{{ page_num }}</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if sessions.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('timer.timer_history', page=sessions.next_num) }}">Weiter</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-4x text-muted mb-3"></i>
+                    <h4>Noch keine Timer-Sessions</h4>
+                    <p class="text-muted">Starte deinen ersten Timer, um hier Statistiken zu sehen!</p>
+                    <a href="{{ url_for('timer.timer_page') }}" class="btn btn-primary">
+                        <i class="fas fa-play"></i> Timer starten
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

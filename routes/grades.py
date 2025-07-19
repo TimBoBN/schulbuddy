@@ -241,6 +241,8 @@ def certificate_grades():
 @login_required
 def add_certificate_grades():
     """Zeugnis-Noten hinzufügen"""
+    from utils.app_settings import get_current_school_year, get_current_semester, get_school_year_options
+    
     if request.method == 'POST':
         grades_added = 0
         
@@ -297,7 +299,10 @@ def add_certificate_grades():
     
     return render_template('add_certificate_grades.html', 
                          subjects=Config.SUBJECTS,
-                         existing_grades=existing_grades)
+                         existing_grades=existing_grades,
+                         current_school_year=get_current_school_year(),
+                         current_semester=get_current_semester(),
+                         school_year_options=get_school_year_options())
 
 @grades_bp.route("/grade_progress")
 @login_required

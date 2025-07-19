@@ -9,6 +9,7 @@ import os
 
 from models import Task, Grade, AppSettings, db
 from config import Config
+from utils.app_settings import get_current_school_year, get_current_semester, get_school_year_options
 
 main_bp = Blueprint('main', __name__)
 
@@ -121,7 +122,10 @@ def index():
                              certificate_average=certificate_average,
                              total_average=certificate_average,  # Template erwartet total_average für Gesamtdurchschnitt
                              durchschnitt=dict(subject_summary),
-                             today=today)
+                             today=today,
+                             current_school_year=get_current_school_year(),
+                             current_semester=get_current_semester(),
+                             school_year_options=get_school_year_options())
     except Exception as e:
         print(f"Error in index route: {e}")
         flash("Fehler beim Laden der Daten", "error")
@@ -142,7 +146,10 @@ def index():
                              certificate_average=0,
                              total_average=0,
                              durchschnitt={},
-                             today=today)
+                             today=today,
+                             current_school_year=get_current_school_year(),
+                             current_semester=get_current_semester(),
+                             school_year_options=get_school_year_options())
 
 @main_bp.route("/repair")
 @login_required

@@ -79,6 +79,28 @@ def statistics():
                     'trend': 'improving' if len(subject_grades) > 1 and subject_grades[-1].grade < avg_grade else 'stable'
                 }
         
+        # Timer-Statistiken hinzufügen
+        from models import StudySession
+        
+        # Gesamt-Timer-Statistiken
+        total_study_sessions = StudySession.query.filter_by(user_id=current_user.id, completed=True).count()
+        total_study_time = db.session.query(
+            db.func.sum(StudySession.actual_duration_seconds)
+        ).filter_by(user_id=current_user.id, completed=True).scalar() or 0
+        total_study_hours = round(total_study_time / 3600, 1)
+        
+        # Heutige Timer-Statistiken
+        today = datetime.now().date()
+        today_sessions = StudySession.query.filter(
+            StudySession.user_id == current_user.id,
+            StudySession.completed == True,
+            StudySession.start_time >= today,
+            StudySession.start_time < today + timedelta(days=1)
+        ).all()
+        
+        today_study_time = sum(s.actual_duration_seconds for s in today_sessions) if today_sessions else 0
+        today_study_minutes = round(today_study_time / 60)
+        
         return render_template('statistics.html',
                              total_tasks=total_tasks,
                              completed_tasks=completed_tasks,
@@ -86,7 +108,11 @@ def statistics():
                              activity_data=dict(activity_data),
                              weekly_stats=dict(weekly_stats),
                              subject_performance=subject_performance,
-                             user=current_user)
+                             user=current_user,
+                             total_study_sessions=total_study_sessions,
+                             total_study_hours=total_study_hours,
+                             today_study_minutes=today_study_minutes,
+                             today_sessions_count=len(today_sessions))
     except Exception as e:
         flash("Fehler beim Laden der Statistiken", "error")
         return redirect(url_for('main.index'))
@@ -211,9 +237,10 @@ def export_data():
 @statistics_bp.route('/export_csv')
 @login_required
 def export_csv():
-    """Daten als schön formatierte CSV exportieren"""
+    """Daten als schön formatierte Excel/CSV exportieren"""
     try:
         import pandas as pd
+        import xlsxwriter
         from config import Config
         
         # Aufgaben sammeln
@@ -229,10 +256,18 @@ def export_csv():
                 'other': 'Niedrig (Sonstiges)'
             }.get(task.task_type, 'Unbekannt')
             
+            type_text = {
+                'exam': 'Klassenarbeit',
+                'test': 'Test',
+                'project': 'Projekt', 
+                'homework': 'Hausaufgabe',
+                'other': 'Sonstiges'
+            }.get(task.task_type, task.task_type.capitalize())
+            
             tasks_data.append({
                 'Titel': task.title,
                 'Fach': Config.SUBJECTS.get(task.subject, task.subject),
-                'Typ': task.task_type.capitalize(),
+                'Typ': type_text,
                 'Priorität': priority_text,
                 'Beschreibung': task.description or '-',
                 'Fälligkeitsdatum': task.due_date.strftime('%d.%m.%Y') if task.due_date else '-',
@@ -268,6 +303,30 @@ def export_csv():
         # Excel-Writer mit mehreren Sheets
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            workbook = writer.book
+            
+            # Formatierungen definieren
+            header_format = workbook.add_format({
+                'bold': True,
+                'text_wrap': True,
+                'valign': 'top',
+                'fg_color': '#D7E4BD',
+                'border': 1
+            })
+            
+            cell_format = workbook.add_format({
+                'text_wrap': True,
+                'valign': 'top',
+                'border': 1
+            })
+            
+            date_format = workbook.add_format({
+                'text_wrap': True,
+                'valign': 'top',
+                'border': 1,
+                'num_format': 'dd.mm.yyyy'
+            })
+            
             # Übersichtsblatt
             overview_data = {
                 'Statistik': [
@@ -298,15 +357,63 @@ def export_csv():
                 ]
             }
             
-            pd.DataFrame(overview_data).to_excel(writer, sheet_name='Übersicht', index=False)
+            # Übersicht-Sheet mit Formatierung
+            overview_df = pd.DataFrame(overview_data)
+            overview_df.to_excel(writer, sheet_name='Übersicht', index=False)
+            worksheet = writer.sheets['Übersicht']
+            
+            # Header formatieren
+            for col_num, value in enumerate(overview_df.columns.values):
+                worksheet.write(0, col_num, value, header_format)
+            
+            # Daten formatieren
+            for row_num in range(1, len(overview_df) + 1):
+                for col_num in range(len(overview_df.columns)):
+                    worksheet.write(row_num, col_num, overview_df.iloc[row_num-1, col_num], cell_format)
+            
+            # Spaltenbreite anpassen
+            worksheet.set_column('A:A', 25)
+            worksheet.set_column('B:B', 20)
             
             # Aufgaben-Sheet
             if tasks_data:
-                pd.DataFrame(tasks_data).to_excel(writer, sheet_name='Aufgaben', index=False)
+                tasks_df = pd.DataFrame(tasks_data)
+                tasks_df.to_excel(writer, sheet_name='Aufgaben', index=False)
+                tasks_worksheet = writer.sheets['Aufgaben']
+                
+                # Header formatieren
+                for col_num, value in enumerate(tasks_df.columns.values):
+                    tasks_worksheet.write(0, col_num, value, header_format)
+                
+                # Spaltenbreiten anpassen
+                tasks_worksheet.set_column('A:A', 30)  # Titel
+                tasks_worksheet.set_column('B:B', 15)  # Fach
+                tasks_worksheet.set_column('C:C', 12)  # Typ
+                tasks_worksheet.set_column('D:D', 25)  # Priorität
+                tasks_worksheet.set_column('E:E', 40)  # Beschreibung
+                tasks_worksheet.set_column('F:F', 15)  # Fälligkeitsdatum
+                tasks_worksheet.set_column('G:G', 12)  # Status
+                tasks_worksheet.set_column('H:H', 18)  # Erledigt am
+                tasks_worksheet.set_column('I:I', 18)  # Erstellt am
             
             # Noten-Sheet  
             if grades_data:
-                pd.DataFrame(grades_data).to_excel(writer, sheet_name='Noten', index=False)
+                grades_df = pd.DataFrame(grades_data)
+                grades_df.to_excel(writer, sheet_name='Noten', index=False)
+                grades_worksheet = writer.sheets['Noten']
+                
+                # Header formatieren
+                for col_num, value in enumerate(grades_df.columns.values):
+                    grades_worksheet.write(0, col_num, value, header_format)
+                
+                # Spaltenbreiten anpassen
+                grades_worksheet.set_column('A:A', 30)  # Beschreibung
+                grades_worksheet.set_column('B:B', 15)  # Fach
+                grades_worksheet.set_column('C:C', 8)   # Note
+                grades_worksheet.set_column('D:D', 18)  # Notentyp
+                grades_worksheet.set_column('E:E', 12)  # Gewichtung
+                grades_worksheet.set_column('F:F', 12)  # Datum
+                grades_worksheet.set_column('G:G', 18)  # Notiert am
         
         output.seek(0)
         
@@ -317,8 +424,11 @@ def export_csv():
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
         
+    except ImportError as e:
+        flash(f"Fehlende Bibliothek für Excel-Export: {str(e)}. Bitte installieren Sie pandas und xlsxwriter.", "error")
+        return redirect(url_for('statistics.export_data'))
     except Exception as e:
-        flash(f"Fehler beim CSV-Export: {str(e)}", "error")
+        flash(f"Fehler beim Excel-Export: {str(e)}", "error")
         return redirect(url_for('statistics.export_data'))
 
 @statistics_bp.route('/export_pdf')

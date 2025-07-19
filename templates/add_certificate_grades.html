@@ -31,11 +31,15 @@
                             <div class="col-md-6">
                                 <label for="school_year" class="form-label">Schuljahr</label>
                                 <select class="form-select" id="school_year" name="school_year" required>
-                                    <option value="{{ current_school_year }}" selected>{{ current_school_year }}</option>
-                                    <option value="2023/24">2023/24</option>
-                                    <option value="2024/25">2024/25</option>
-                                    <option value="2025/26">2025/26</option>
+                                    {% for year_option in school_year_options %}
+                                        <option value="{{ year_option }}" {{ 'selected' if year_option == current_school_year else '' }}>
+                                            {{ year_option }}
+                                        </option>
+                                    {% endfor %}
                                 </select>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle"></i> Aktuelles Jahr: {{ current_school_year }}
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label for="semester" class="form-label">Halbjahr</label>
@@ -43,6 +47,9 @@
                                     <option value="1" {{ 'selected' if current_semester == 1 else '' }}>1. Halbjahr</option>
                                     <option value="2" {{ 'selected' if current_semester == 2 else '' }}>2. Halbjahr</option>
                                 </select>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle"></i> Aktuelles Halbjahr: {{ current_semester }}
+                                </div>
                             </div>
                         </div>
 

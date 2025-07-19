@@ -11,6 +11,7 @@ def register_routes(app):
     from .grades import grades_bp
     from .statistics import statistics_bp
     from .main import main_bp
+    from .timer import timer_bp
     
     # Register blueprints
     app.register_blueprint(auth_bp)
@@ -19,3 +20,4 @@ def register_routes(app):
     app.register_blueprint(grades_bp)
     app.register_blueprint(statistics_bp)
     app.register_blueprint(main_bp)
+    app.register_blueprint(timer_bp)

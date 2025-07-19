@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+
+{% block title %}Lern-Timer - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>🍅 Lern-Timer (Pomodoro)</h2>
+                <a href="{{ url_for('timer.timer_history') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-history"></i> Verlauf
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Timer Hauptbereich -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    {% if active_session %}
+                    <!-- Aktiver Timer -->
+                    <div id="active-timer">
+                        <h3 class="text-success">Timer läuft</h3>
+                        <div class="display-1 mb-3" id="timer-display">00:00</div>
+                        
+                        <div class="mb-3">
+                            <span class="badge bg-primary fs-6">{{ active_session.session_type.title() }}</span>
+                            {% if active_session.subject %}
+                                <span class="badge bg-secondary fs-6">{{ active_session.subject }}</span>
+                            {% endif %}
+                            {% if active_session.duration_minutes %}
+                                <span class="badge bg-info fs-6">{{ active_session.duration_minutes }} Min geplant</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-danger btn-lg" onclick="stopTimer()">
+                                <i class="fas fa-stop"></i> Stoppen
+                            </button>
+                            <button type="button" class="btn btn-warning btn-lg" onclick="pauseTimer()">
+                                <i class="fas fa-pause"></i> Pausieren
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Timer starten -->
+                    <div id="start-timer">
+                        <h3>Timer starten</h3>
+                        <div class="display-1 mb-3 text-muted">00:00</div>
+                        
+                        <form id="timer-form" class="mb-4">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="subject" class="form-label">Fach (optional)</label>
+                                    <select class="form-select" id="subject" name="subject">
+                                        <option value="">Kein Fach ausgewählt</option>
+                                        {% for subject_name, color_code in subjects.items() %}
+                                        <option value="{{ subject_name }}">{{ subject_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="task_id" class="form-label">Aufgabe (optional)</label>
+                                    <select class="form-select" id="task_id" name="task_id">
+                                        <option value="">Keine Aufgabe ausgewählt</option>
+                                        {% for task in available_tasks %}
+                                        <option value="{{ task.id }}">{{ task.title }} ({{ task.subject }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="duration_minutes" class="form-label">Dauer (Minuten)</label>
+                                    <select class="form-select" id="duration_minutes" name="duration_minutes">
+                                        <option value="15">15 Min (Kurzsession)</option>
+                                        <option value="25" selected>25 Min (Pomodoro)</option>
+                                        <option value="30">30 Min</option>
+                                        <option value="45">45 Min (Tiefarbeit)</option>
+                                        <option value="60">60 Min</option>
+                                        <option value="90">90 Min (Fokusblock)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="session_type" class="form-label">Session-Typ</label>
+                                    <select class="form-select" id="session_type" name="session_type">
+                                        <option value="study" selected>Lernen</option>
+                                        <option value="break">Pause</option>
+                                        <option value="long_break">Lange Pause</option>
+                                        <option value="review">Wiederholung</option>
+                                        <option value="exercise">Übungen</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="notes" class="form-label">Notizen (optional)</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="2" 
+                                         placeholder="Was möchtest du in dieser Session machen?"></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-play"></i> Timer starten
+                            </button>
+                        </form>
+                        
+                        <!-- Schnellstart-Buttons -->
+                        <div class="mt-4">
+                            <h5>Schnellstart:</h5>
+                            <div class="btn-group-vertical d-md-none mb-2">
+                                <a href="{{ url_for('timer.quick_start_timer', session_type='pomodoro') }}" class="btn btn-outline-success">
+                                    🍅 Pomodoro (25 Min)
+                                </a>
+                                <a href="{{ url_for('timer.quick_start_timer', session_type='study') }}" class="btn btn-outline-primary">
+                                    📚 Lernsession (45 Min)
+                                </a>
+                                <a href="{{ url_for('timer.quick_start_timer', session_type='quick') }}" class="btn btn-outline-info">
+                                    ⚡ Quicksession (15 Min)
+                                </a>
+                                <a href="{{ url_for('timer.quick_start_timer', session_type='short-break') }}" class="btn btn-outline-warning">
+                                    ☕ Kurze Pause (5 Min)
+                                </a>
+                            </div>
+                            
+                            <div class="btn-group d-none d-md-inline-flex" role="group">
+                                <a href="{{ url_for('timer.quick_start_timer', session_type='pomodoro') }}" class="btn btn-outline-success">
+                                    🍅 Pomodoro (25 Min)
+                                </a>
+                                <a href="{{ url_for('timer.quick_start_timer', session_type='study') }}" class="btn btn-outline-primary">
+                                    📚 Lernsession (45 Min)
+                                </a>
+                                <a href="{{ url_for('timer.quick_start_timer', session_type='quick') }}" class="btn btn-outline-info">
+                                    ⚡ Quicksession (15 Min)
+                                </a>
+                                <a href="{{ url_for('timer.quick_start_timer', session_type='short-break') }}" class="btn btn-outline-warning">
+                                    ☕ Kurze Pause (5 Min)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistiken Sidebar -->
+        <div class="col-md-4">
+            <!-- Heutige Statistiken -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-bar"></i> Heute</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h3 class="text-primary">{{ today_total_minutes }}</h3>
+                            <small class="text-muted">Minuten gelernt</small>
+                        </div>
+                        <div class="col-6">
+                            <h3 class="text-success">{{ today_sessions_count }}</h3>
+                            <small class="text-muted">Sessions</small>
+                        </div>
+                    </div>
+                    
+                    {% if today_sessions %}
+                    <hr>
+                    <h6>Heutige Sessions:</h6>
+                    {% for session in today_sessions %}
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span>
+                            <small class="badge bg-light text-dark">{{ session.session_type }}</small>
+                            {% if session.subject %}
+                                <small>{{ session.subject }}</small>
+                            {% endif %}
+                        </span>
+                        <small class="text-muted">{{ session.duration_display }}</small>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Letzte Sessions -->
+            {% if recent_sessions %}
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-history"></i> Letzte Sessions</h5>
+                </div>
+                <div class="card-body">
+                    {% for session in recent_sessions[:5] %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <span class="badge bg-primary">{{ session.session_type }}</span>
+                            {% if session.subject %}
+                                <small class="text-muted">{{ session.subject }}</small>
+                            {% endif %}
+                            <br>
+                            <small class="text-muted">{{ session.end_time.strftime('%d.%m %H:%M') }}</small>
+                        </div>
+                        <span class="badge bg-success">{{ session.duration_display }}</span>
+                    </div>
+                    {% endfor %}
+                    
+                    {% if recent_sessions|length > 5 %}
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('timer.timer_history') }}" class="btn btn-sm btn-outline-primary">
+                            Alle Sessions anzeigen
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Audio für Timer-Ende -->
+<audio id="timer-sound" preload="auto">
+    <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmAeCSiO2+/AcScFKH7K7+CMOAkVZL3f5KdZEQlBqeHzvmAeCSiS1/HFeSsFJHfG8N2QQAoUXrPp66hVFApGnt/yvmAeCiiO2+/AcScFKn7K7uGNOAkVZb7f5KdZEQlBqt/zvmAeCiiS1/HGeisFJHfG8N+QQAoUXrTp6qhVFAlGnt/yv2EeCypUkKJUqKJ" type="audio/wav">
+</audio>
+
+<script>
+// Timer-JavaScript
+let timerInterval;
+let startTime;
+let isRunning = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Timer-Status laden
+    updateTimerStatus();
+    
+    // Regelmäßiges Update wenn Timer läuft
+    setInterval(updateTimerStatus, 1000);
+    
+    // Form-Handler
+    const timerForm = document.getElementById('timer-form');
+    if (timerForm) {
+        timerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            startTimer();
+        });
+    }
+    
+    // Duration-Änderung Handler für Anzeige-Update
+    const durationSelect = document.getElementById('duration_minutes');
+    if (durationSelect) {
+        durationSelect.addEventListener('change', function() {
+            updateTimerDisplay();
+        });
+        // Initial anzeigen
+        updateTimerDisplay();
+    }
+});
+
+function updateTimerDisplay() {
+    const durationSelect = document.getElementById('duration_minutes');
+    const display = document.querySelector('#start-timer .display-1');
+    
+    if (durationSelect && display && !isRunning) {
+        const minutes = parseInt(durationSelect.value);
+        const seconds = 0;
+        display.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        display.className = 'display-1 mb-3 text-primary';
+    }
+}
+
+function updateTimerStatus() {
+    fetch('/timer/status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.active) {
+                // Timer läuft
+                const display = document.getElementById('timer-display');
+                if (display) {
+                    let displaySeconds = data.elapsed_seconds;
+                    let displayClass = 'display-1 mb-3 text-primary';
+                    
+                    // Wenn eine geplante Zeit vorhanden ist, countdown anzeigen
+                    if (data.session.duration_minutes) {
+                        const plannedSeconds = data.session.duration_minutes * 60;
+                        displaySeconds = Math.max(0, plannedSeconds - data.elapsed_seconds);
+                        
+                        // Farbe ändern basierend auf verbleibender Zeit
+                        const percentage = (displaySeconds / plannedSeconds) * 100;
+                        if (percentage <= 10) {
+                            displayClass = 'display-1 mb-3 text-danger';
+                        } else if (percentage <= 25) {
+                            displayClass = 'display-1 mb-3 text-warning';
+                        }
+                        
+                        // Timer-Ende Sound wenn Zeit abgelaufen
+                        if (displaySeconds === 0 && data.elapsed_seconds >= plannedSeconds) {
+                            playTimerSound();
+                        }
+                    }
+                    
+                    const minutes = Math.floor(displaySeconds / 60);
+                    const seconds = displaySeconds % 60;
+                    display.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    display.className = displayClass;
+                }
+                isRunning = true;
+            } else {
+                isRunning = false;
+            }
+        })
+        .catch(error => console.error('Timer-Status Error:', error));
+}
+
+function startTimer() {
+    const formData = new FormData(document.getElementById('timer-form'));
+    const data = {
+        subject: formData.get('subject'),
+        task_id: formData.get('task_id') || null,
+        duration_minutes: parseInt(formData.get('duration_minutes')),
+        session_type: formData.get('session_type'),
+        notes: formData.get('notes')
+    };
+    
+    fetch('/timer/start', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            location.reload();
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Start Timer Error:', error);
+        showNotification('Fehler beim Starten des Timers', 'error');
+    });
+}
+
+function stopTimer() {
+    fetch('/timer/stop', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            playTimerSound();
+            location.reload();
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Stop Timer Error:', error);
+        showNotification('Fehler beim Stoppen des Timers', 'error');
+    });
+}
+
+function pauseTimer() {
+    fetch('/timer/pause', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'info');
+            location.reload();
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Pause Timer Error:', error);
+        showNotification('Fehler beim Pausieren des Timers', 'error');
+    });
+}
+
+function playTimerSound() {
+    const audio = document.getElementById('timer-sound');
+    if (audio) {
+        audio.play().catch(e => console.log('Audio play failed:', e));
+    }
+}
+
+function showNotification(message, type) {
+    // Bootstrap Alert erstellen
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Alert einfügen
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-dismiss nach 5 Sekunden
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}

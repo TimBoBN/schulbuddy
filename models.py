@@ -475,6 +475,10 @@ class UserStatistic(db.Model):
     grades_added = db.Column(db.Integer, default=0)
     points_earned = db.Column(db.Integer, default=0)
     
+    # Timer-Statistiken (neu)
+    study_sessions = db.Column(db.Integer, default=0)
+    study_time_minutes = db.Column(db.Integer, default=0)  # Gesamte Lernzeit in Minuten
+    
     # Fach-spezifische Daten (JSON)
     subject_tasks = db.Column(db.Text, default='{}')  # JSON: {subject: count}
     subject_grades = db.Column(db.Text, default='{}')  # JSON: {subject: [grades]}
@@ -587,9 +591,129 @@ class UserStatistic(db.Model):
                 subject_grades[grade.subject] = []
             subject_grades[grade.subject].append(grade.grade)
         
+        # Timer-Sessions nach Fach (neu)
+        study_sessions_count = 0
+        total_study_time = 0
+        subject_study_time = {}
+        
+        for session in StudySession.query.filter(
+            StudySession.user_id == user_id,
+            StudySession.completed == True,
+            StudySession.start_time >= date_obj,
+            StudySession.start_time < date_obj + timedelta(days=1)
+        ).all():
+            study_sessions_count += 1
+            if session.actual_duration_seconds:
+                session_minutes = session.actual_duration_seconds // 60
+                total_study_time += session_minutes
+                
+                if session.subject:
+                    subject_study_time[session.subject] = subject_study_time.get(session.subject, 0) + session_minutes
+        
+        stat.study_sessions = study_sessions_count
+        stat.study_time_minutes = total_study_time
         stat.set_subject_tasks(subject_tasks)
         stat.set_subject_grades(subject_grades)
         stat.set_task_types(task_types)
         
         db.session.commit()
         return stat
+
+
+class StudySession(db.Model):
+    """Lern-Timer / Pomodoro Sessions"""
+    __tablename__ = 'study_sessions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    subject = db.Column(db.String(100), nullable=True)  # Optional: Welches Fach
+    task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=True)  # Optional: Für welche Aufgabe
+    start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    end_time = db.Column(db.DateTime, nullable=True)
+    duration_minutes = db.Column(db.Integer, nullable=True)  # Geplante Dauer (z.B. 25 Min)
+    actual_duration_seconds = db.Column(db.Integer, nullable=True)  # Tatsächliche Dauer
+    session_type = db.Column(db.String(50), default='study')  # 'study', 'break', 'long_break'
+    completed = db.Column(db.Boolean, default=False)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='study_sessions')
+    task = db.relationship('Task', backref='study_sessions')
+    
+    def end_session(self):
+        """Session beenden und Dauer berechnen"""
+        if not self.end_time:
+            self.end_time = datetime.utcnow()
+            duration = self.end_time - self.start_time
+            self.actual_duration_seconds = int(duration.total_seconds())
+            self.completed = True
+            
+            # Punkte vergeben basierend auf Dauer
+            points = self._calculate_points()
+            if points > 0:
+                self.user.add_points(points, 'study_session', {
+                    'session_id': self.id,
+                    'duration_minutes': round(self.actual_duration_seconds / 60, 1),
+                    'subject': self.subject,
+                    'session_type': self.session_type
+                })
+    
+    def _calculate_points(self):
+        """Punkte basierend auf Studiendauer berechnen"""
+        if not self.actual_duration_seconds:
+            return 0
+            
+        minutes = self.actual_duration_seconds / 60
+        
+        # Punktesystem:
+        # 5-15 Min: 2 Punkte
+        # 15-30 Min: 5 Punkte  
+        # 30-45 Min: 8 Punkte
+        # 45+ Min: 10 Punkte
+        
+        if minutes >= 45:
+            return 10
+        elif minutes >= 30:
+            return 8
+        elif minutes >= 15:
+            return 5
+        elif minutes >= 5:
+            return 2
+        else:
+            return 0
+    
+    @property
+    def duration_display(self):
+        """Benutzerfreundliche Anzeige der Dauer"""
+        if not self.actual_duration_seconds:
+            return "Läuft..."
+            
+        minutes = self.actual_duration_seconds // 60
+        seconds = self.actual_duration_seconds % 60
+        
+        if minutes >= 60:
+            hours = minutes // 60
+            minutes = minutes % 60
+            return f"{hours}h {minutes}m {seconds}s"
+        else:
+            return f"{minutes}m {seconds}s"
+    
+    def to_dict(self):
+        """Für API/JSON Ausgabe"""
+        return {
+            'id': self.id,
+            'subject': self.subject,
+            'task_id': self.task_id,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'end_time': self.end_time.isoformat() if self.end_time else None,
+            'duration_minutes': self.duration_minutes,
+            'actual_duration_seconds': self.actual_duration_seconds,
+            'session_type': self.session_type,
+            'completed': self.completed,
+            'notes': self.notes,
+            'duration_display': self.duration_display
+        }
+    
+    def __repr__(self):
+        return f'<StudySession {self.id}: {self.session_type} - {self.duration_display}>'

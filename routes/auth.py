@@ -10,7 +10,7 @@ import qrcode
 import io
 import base64
 
-from models import User, db
+from models import User, db, AppSettings
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -41,11 +41,19 @@ def login():
         else:
             flash("Ungültige Anmeldedaten", "error")
     
-    return render_template("login.html")
+    # Prüfe ob Registrierung aktiviert ist für Template
+    registration_enabled = AppSettings.get_setting('enable_registration', 'False') == 'True'
+    return render_template("login.html", registration_enabled=registration_enabled)
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
     """Registrierung (falls aktiviert)"""
+    # Prüfe ob Registrierung aktiviert ist
+    registration_enabled = AppSettings.get_setting('enable_registration', 'False') == 'True'
+    if not registration_enabled:
+        flash("Registrierung ist derzeit deaktiviert. Bitte wenden Sie sich an den Administrator.", "error")
+        return redirect(url_for('auth.login'))
+    
     if request.method == "POST":
         username = request.form.get("username")
         email = request.form.get("email")

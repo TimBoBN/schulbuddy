@@ -66,7 +66,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card">
                 <div class="card-body text-center">
                     <h4>{{ completed_tasks }}</h4>
@@ -74,11 +74,57 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card">
                 <div class="card-body text-center">
                     <h4>{{ total_grades }}</h4>
                     <p class="text-muted mb-0">Noten eingetragen</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4>{{ total_study_hours }}h</h4>
+                    <p class="text-muted mb-0">Gelernt (gesamt)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Timer-Statistiken -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4 class="text-success">{{ total_study_sessions }}</h4>
+                    <p class="text-muted mb-0">Timer-Sessions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4 class="text-info">{{ today_study_minutes }}min</h4>
+                    <p class="text-muted mb-0">Heute gelernt</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4 class="text-warning">{{ today_sessions_count }}</h4>
+                    <p class="text-muted mb-0">Sessions heute</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <a href="{{ url_for('timer.timer_page') }}" class="btn btn-danger btn-sm">
+                        <i class="fas fa-play"></i> Timer starten
+                    </a>
+                    <p class="text-muted mb-0 mt-2">Lern-Timer</p>
                 </div>
             </div>
         </div>
