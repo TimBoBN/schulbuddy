@@ -78,7 +78,6 @@ static/uploads/*
 .dockerignore
 
 # Local development
-instance/
 data/
 
 # Git

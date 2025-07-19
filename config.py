@@ -58,10 +58,28 @@ class Config:
         os.environ.get("TWO_FACTOR_TIMEOUT_MINUTES", "5")
     )  # 5 Minuten für 2FA
 
-    # Schuljahr und Halbjahr
-    CURRENT_SCHOOL_YEAR = os.environ.get("CURRENT_SCHOOL_YEAR", "2024/25")
-    CURRENT_SEMESTER = int(os.environ.get("CURRENT_SEMESTER", "1"))
-
+       # Schuljahr und Halbjahr (Standardwerte)
+    CURRENT_SCHOOL_YEAR = os.environ.get('CURRENT_SCHOOL_YEAR', '2025/26')
+    CURRENT_SEMESTER = int(os.environ.get('CURRENT_SEMESTER', '1'))
+    
+    @staticmethod
+    def get_current_school_year():
+        """Hole das aktuelle Schuljahr aus den App-Einstellungen"""
+        try:
+            from models import AppSettings
+            return AppSettings.get_setting('current_school_year', '2025/26')
+        except:
+            return '2025/26'
+    
+    @staticmethod
+    def get_current_semester():
+        """Hole das aktuelle Semester aus den App-Einstellungen"""
+        try:
+            from models import AppSettings
+            return int(AppSettings.get_setting('current_semester', '1'))
+        except:
+            return 1
+   
     # Upload Settings
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
     ALLOWED_EXTENSIONS = {"txt", "pdf", "png", "jpg", "jpeg", "gif", "doc", "docx"}

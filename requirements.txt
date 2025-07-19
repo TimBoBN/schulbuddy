@@ -5,6 +5,5 @@ Flask-Login==0.6.3
 pyotp==2.8.0
 qrcode[pil]==7.4.2
 reportlab==4.0.4
-pandas==2.0.3
-requests==2.31.0
-gunicorn==21.2.0
+pandas==2.3.1
+xlsxwriter==3.2.5
