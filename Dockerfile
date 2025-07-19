@@ -51,8 +51,8 @@ if [ ! -f "/app/data/schulbuddy.db" ]; then\n\
 fi\n\
 \n\
 # App starten\n\
-echo "🎓 Starting SchulBuddy on port $PORT..."\n\
-exec python /app/app.py\n\
+echo "🎓 Starting SchulBuddy with Gunicorn on port $PORT..."\n\
+exec gunicorn --config gunicorn.conf.py wsgi:application\n\
 ' > entrypoint.sh && chmod +x entrypoint.sh
 
 # Umgebungsvariablen setzen

@@ -8,6 +8,7 @@ import io
 import base64
 import json
 import secrets
+from flask import current_app
 
 db = SQLAlchemy()
 
@@ -137,8 +138,9 @@ class User(UserMixin, db.Model):
         new_level = (self.total_points // 100) + 1
         if new_level > self.level:
             self.level = new_level
-            # Achievement für Level-up
-            self.check_achievements()
+        
+        # Streak aktualisieren (wichtig für Achievements)
+        self.update_streak()
         
         # Aktivität loggen
         log = ActivityLog(
@@ -148,6 +150,10 @@ class User(UserMixin, db.Model):
             points_earned=points
         )
         db.session.add(log)
+        
+        # Achievements prüfen (nach jeder Punktevergabe)
+        self.check_achievements()
+        
         db.session.commit()
     
     def update_streak(self):
@@ -173,8 +179,8 @@ class User(UserMixin, db.Model):
         if self.current_streak > self.longest_streak:
             self.longest_streak = self.current_streak
         
+        # Nur commit, nicht erneut achievements prüfen (wird von add_points gemacht)
         db.session.commit()
-        self.check_achievements()
     
     def check_achievements(self):
         """Prüfe und verleihe Achievements"""
@@ -443,14 +449,19 @@ class Notification(db.Model):
     
     user = db.relationship('User', backref='notifications')
 
+def ensure_achievements():
+    with current_app.app_context():
+        from models import init_achievements
+        init_achievements()
+
 def init_db(app):
     """Initialisiere die Datenbank"""
     db.init_app(app)
     
     with app.app_context():
         db.create_all()
+        ensure_achievements()
         print("Datenbank initialisiert!")
-        
         # Erstelle Admin-Benutzer falls nicht vorhanden (erst nach create_all!)
         try:
             if not User.query.filter_by(id=1).first():
@@ -462,10 +473,20 @@ def init_db(app):
         except Exception as e:
             print(f"Fehler beim Erstellen des Admin-Users: {e}")
             db.session.rollback()
-        
-        # Erstelle Standard-Achievements
-        init_achievements()
-        
+
+        # Erstelle Standard-Achievements, falls sie fehlen (immer prüfen)
+        try:
+            count = Achievement.query.count()
+            if count == 0:
+                print("Initialisiere Achievements...")
+                init_achievements()
+                print("Achievements wurden erstellt!")
+            else:
+                print(f"Achievements bereits vorhanden: {count}")
+        except Exception as e:
+            print(f"Fehler bei der Achievement-Initialisierung: {e}")
+            db.session.rollback()
+
         # Migriere existierende Benutzer-Statistiken
         migrate_user_statistics()
 
