@@ -1,6 +1,11 @@
 # SchulBuddy Docker Setup Script (Windows PowerShell)
 Write-Host "SchulBuddy Docker Setup wird gestartet..." -ForegroundColor Green
 
+# Wechsle zum Projekt-Hauptverzeichnis (parent directory)
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$projectDir = Split-Path -Parent $scriptDir
+Set-Location $projectDir
+
 # Prüfe ob .env existiert
 if (Test-Path ".env") {
     Write-Host ".env-Datei existiert bereits!" -ForegroundColor Yellow
@@ -12,16 +17,16 @@ if (Test-Path ".env") {
 }
 
 # Erstelle .env von Template
-if (Test-Path ".env.template") {
-    Write-Host "Erstelle .env-Datei von .env.template..." -ForegroundColor Cyan
-    Copy-Item ".env.template" ".env"
+if (Test-Path "config\.env.template") {
+    Write-Host "Erstelle .env-Datei von config\.env.template..." -ForegroundColor Cyan
+    Copy-Item "config\.env.template" ".env"
     Write-Host ".env-Datei erfolgreich erstellt!" -ForegroundColor Green
-} elseif (Test-Path ".env.example") {
-    Write-Host "Erstelle .env-Datei von .env.example..." -ForegroundColor Cyan
-    Copy-Item ".env.example" ".env"
+} elseif (Test-Path "config\.env.example") {
+    Write-Host "Erstelle .env-Datei von config\.env.example..." -ForegroundColor Cyan
+    Copy-Item "config\.env.example" ".env"
     Write-Host ".env-Datei erfolgreich erstellt!" -ForegroundColor Green
 } else {
-    Write-Host "Keine Vorlage gefunden! .env.template oder .env.example fehlt." -ForegroundColor Red
+    Write-Host "Keine Vorlage gefunden! config\.env.template oder config\.env.example fehlt." -ForegroundColor Red
     exit 1
 }
 
@@ -67,4 +72,4 @@ Write-Host "   1. Pruefen Sie die .env-Datei: notepad .env"
 Write-Host "   2. Starten Sie die Anwendung: docker-compose up -d"
 Write-Host "   3. Oeffnen Sie: http://localhost:$port"
 Write-Host ""
-Write-Host "Weitere Hilfe: Get-Content PORT_CONFIG.md" -ForegroundColor Blue
+Write-Host "Weitere Hilfe: Get-Content docs\PORT_CONFIG.md" -ForegroundColor Blue
