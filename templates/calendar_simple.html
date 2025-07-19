@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Kalender - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>📅 Kalender</h1>
+                <a href="/" class="btn btn-secondary">
+                    ← Zurück zum Dashboard
+                </a>
+            </div>
+            
+            <!-- Kalender-Filter -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">🔍 Filter</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Nach Fach filtern:</label>
+                            <select class="form-select" id="subject-filter">
+                                <option value="">Alle Fächer</option>
+                                {% for subject in subjects.keys() %}
+                                    <option value="{{ subject }}">{{ subject }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Nach Typ filtern:</label>
+                            <select class="form-select" id="type-filter">
+                                <option value="">Alle Typen</option>
+                                <option value="homework">📚 Hausaufgaben</option>
+                                <option value="exam">📝 Klassenarbeiten</option>
+                                <option value="project">🎯 Projekte</option>
+                                <option value="grade">🏫 Noten</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Aktionen:</label>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary" onclick="applyFilters()">Filter anwenden</button>
+                                <button class="btn btn-secondary" onclick="clearFilters()">Zurücksetzen</button>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted" id="filter-stats">Zeige alle Events</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Fächer-Legende -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">🎨 Fach-Farben</h5>
+                </div>
+                <div class="card-body">
+                    <div class="subject-legend">
+                        {% for subject, color in subjects.items() %}
+                            <span class="subject-badge" style="background-color: {{ color }};">
+                                {{ subject }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">📝 Klassenarbeiten | 🎯 Projekte | 📚 Hausaufgaben | 🏫 Noten</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Kalender Container -->
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <h4 class="calendar-title" id="calendar-title">Loading...</h4>
+                    <div class="calendar-nav">
+                        <button class="calendar-nav-btn" onclick="previousMonth()">‹ Vorheriger</button>
+                        <button class="calendar-nav-btn" onclick="nextMonth()">Nächster ›</button>
+                        <button class="calendar-nav-btn" onclick="goToToday()">Heute</button>
+                    </div>
+                </div>
+                
+                <div class="calendar-grid" id="calendar-grid">
+                    <!-- Wochentage -->
+                    <div class="calendar-weekday">Mo</div>
+                    <div class="calendar-weekday">Di</div>
+                    <div class="calendar-weekday">Mi</div>
+                    <div class="calendar-weekday">Do</div>
+                    <div class="calendar-weekday">Fr</div>
+                    <div class="calendar-weekday">Sa</div>
+                    <div class="calendar-weekday">So</div>
+                    
+                    <!-- Kalender-Tage (werden mit JavaScript generiert) -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/calendar.js"></script>
+{% endblock %}

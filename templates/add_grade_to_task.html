@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Note hinzufügen - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>📝 Note für Aufgabe hinzufügen</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Aufgabe:</strong> {{ task.title }}<br>
+                        <strong>Fach:</strong> {{ task.subject }}<br>
+                        <strong>Typ:</strong> 
+                        {% if task.task_type == 'exam' %}📝 Klassenarbeit{% endif %}
+                        {% if task.task_type == 'project' %}🎯 Projekt{% endif %}
+                        {% if task.task_type == 'homework' %}📚 Hausaufgabe{% endif %}
+                        <br>
+                        <strong>Datum:</strong> {{ task.due_date.strftime('%d.%m.%Y') }}
+                    </div>
+                    
+                    <form method="post">
+                        <div class="mb-3">
+                            <label class="form-label">Note (1-6):</label>
+                            <input class="form-control" type="number" step="0.1" min="1" max="6" name="grade" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Beschreibung (optional):</label>
+                            <input class="form-control" type="text" name="description" 
+                                   placeholder="z.B. Sehr gute Präsentation" maxlength="200">
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">💾 Note hinzufügen</button>
+                            <a href="/" class="btn btn-secondary">❌ Abbrechen</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

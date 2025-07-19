@@ -1,0 +1,459 @@
+{% extends "base.html" %}
+
+{% block title %}Lernstreak - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>🔥 Lernstreak</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url_for('statistics.statistics') }}">Statistiken</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Lernstreak</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hauptstreak-Anzeige -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card streak-hero">
+                <div class="card-body text-center py-5">
+                    <div class="streak-flame-container mb-4">
+                        <div class="streak-flame">🔥</div>
+                        <div class="streak-counter">{{ current_streak }}</div>
+                    </div>
+                    <h2 class="streak-title">{{ current_streak }}-Tage-Streak</h2>
+                    <p class="text-muted">
+                        {% if current_streak == 0 %}
+                            Starte heute deine Lernreise!
+                        {% elif current_streak == 1 %}
+                            Großartiger Start! Mach weiter so!
+                        {% else %}
+                            Fantastisch! Du bist {{ current_streak }} Tage dabei!
+                        {% endif %}
+                    </p>
+                    
+                    {% if current_streak > 0 %}
+                        <div class="streak-motivation">
+                            <i class="fas fa-fire text-warning"></i>
+                            <span>Nicht die Flamme erlöschen lassen!</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Streak-Statistiken -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="streak-stat-icon">🏆</div>
+                    <h3 class="card-title">{{ longest_streak }}</h3>
+                    <p class="card-text">Längster Streak</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="streak-stat-icon">📅</div>
+                    <h3 class="card-title">{{ total_active_days }}</h3>
+                    <p class="card-text">Aktive Tage</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="streak-stat-icon">📊</div>
+                    <h3 class="card-title">{{ streak_stats.current_month_days }}</h3>
+                    <p class="card-text">Diesen Monat</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="streak-stat-icon">⭐</div>
+                    <h3 class="card-title">{{ streak_stats.best_week_days }}</h3>
+                    <p class="card-text">Beste Woche</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Streak-Ziele -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">🎯 Streak-Ziele</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for goal in streak_goals %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card streak-goal {% if goal.achieved %}streak-achieved{% elif goal.current_achieved %}streak-current{% endif %}">
+                                <div class="card-body text-center">
+                                    <div class="goal-icon">{{ goal.icon }}</div>
+                                    <h6 class="goal-title">{{ goal.title }}</h6>
+                                    <p class="goal-days">{{ goal.days }} Tage</p>
+                                    <small class="goal-reward">{{ goal.reward }}</small>
+                                    {% if goal.current_achieved %}
+                                        <div class="goal-status current">✅ Aktuell erreicht</div>
+                                    {% elif goal.achieved %}
+                                        <div class="goal-status achieved">🏆 Erreicht</div>
+                                    {% else %}
+                                        <div class="goal-status pending">{{ goal.days - current_streak }} Tage verbleibend</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wöchentliche Übersicht -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">📈 Wöchentliche Aktivität</h5>
+                </div>
+                <div class="card-body">
+                    <div class="weekly-streak-container">
+                        {% for week in weekly_streaks[:8] %}
+                        <div class="week-row">
+                            <div class="week-label">
+                                {{ week.week_start.strftime('%d.%m') }}
+                            </div>
+                            <div class="week-days">
+                                {% for day in week.days %}
+                                <div class="day-cell {% if day.active %}active{% endif %} {% if day.date == date.today() %}today{% endif %}"
+                                     title="{{ day.date.strftime('%d.%m.%Y') }}">
+                                    {% if day.active %}🔥{% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Jahreskalender -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">📅 Aktivitäts-Heatmap</h5>
+                    <small class="text-muted">Letzten 365 Tage</small>
+                </div>
+                <div class="card-body">
+                    <div class="activity-heatmap">
+                        <div class="heatmap-months">
+                            <span>Jan</span><span>Feb</span><span>Mär</span><span>Apr</span>
+                            <span>Mai</span><span>Jun</span><span>Jul</span><span>Aug</span>
+                            <span>Sep</span><span>Okt</span><span>Nov</span><span>Dez</span>
+                        </div>
+                        <div class="heatmap-grid">
+                            {% for day in calendar_data %}
+                            <div class="heatmap-day {% if day.active %}active{% endif %} {% if day.is_today %}today{% endif %}"
+                                 title="{{ day.date }}" 
+                                 data-date="{{ day.date }}">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="heatmap-legend">
+                            <span>Weniger</span>
+                            <div class="legend-scale">
+                                <div class="legend-day"></div>
+                                <div class="legend-day active"></div>
+                            </div>
+                            <span>Mehr</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Streak-spezifische Styles */
+.streak-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.streak-flame-container {
+    position: relative;
+    display: inline-block;
+}
+
+.streak-flame {
+    font-size: 4rem;
+    animation: flicker 1.5s ease-in-out infinite alternate;
+}
+
+.streak-counter {
+    position: absolute;
+    bottom: -10px;
+    right: -10px;
+    background: #ff6b6b;
+    color: white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.streak-title {
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.streak-motivation {
+    background: rgba(255,255,255,0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    display: inline-block;
+    margin-top: 1rem;
+}
+
+.streak-stat-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.streak-goal {
+    height: 100%;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.streak-goal.streak-achieved {
+    border-color: #28a745;
+    background: #f8fff9;
+}
+
+.streak-goal.streak-current {
+    border-color: #ffc107;
+    background: #fffef8;
+    transform: scale(1.05);
+}
+
+.goal-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.goal-status.current {
+    color: #ffc107;
+    font-weight: bold;
+}
+
+.goal-status.achieved {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.goal-status.pending {
+    color: #6c757d;
+}
+
+/* Wöchentliche Aktivität */
+.weekly-streak-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.week-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.week-label {
+    width: 60px;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.week-days {
+    display: flex;
+    gap: 0.2rem;
+}
+
+.day-cell {
+    width: 25px;
+    height: 25px;
+    border-radius: 4px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+.day-cell.active {
+    background: #ff6b6b;
+    color: white;
+    border-color: #ff6b6b;
+}
+
+.day-cell.today {
+    box-shadow: 0 0 0 2px #007bff;
+}
+
+/* Activity Heatmap */
+.activity-heatmap {
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+.heatmap-months {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(53, 1fr);
+    gap: 2px;
+    margin-bottom: 1rem;
+}
+
+.heatmap-day {
+    width: 12px;
+    height: 12px;
+    background: #ebedf0;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.heatmap-day.active {
+    background: #ff6b6b;
+}
+
+.heatmap-day.today {
+    box-shadow: 0 0 0 1px #007bff;
+}
+
+.heatmap-legend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.legend-scale {
+    display: flex;
+    gap: 2px;
+}
+
+.legend-day {
+    width: 12px;
+    height: 12px;
+    background: #ebedf0;
+    border-radius: 2px;
+}
+
+.legend-day.active {
+    background: #ff6b6b;
+}
+
+/* Animationen */
+@keyframes flicker {
+    0% { transform: scale(1) rotate(-1deg); }
+    100% { transform: scale(1.05) rotate(1deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .streak-flame {
+        font-size: 3rem;
+    }
+    
+    .heatmap-grid {
+        grid-template-columns: repeat(26, 1fr);
+    }
+    
+    .heatmap-months {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Tooltip für Heatmap-Tage
+    const heatmapDays = document.querySelectorAll('.heatmap-day');
+    
+    heatmapDays.forEach(day => {
+        day.addEventListener('mouseenter', function(e) {
+            const date = this.dataset.date;
+            const isActive = this.classList.contains('active');
+            
+            // Erstelle Tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'streak-tooltip';
+            tooltip.innerHTML = `
+                <strong>${date}</strong><br>
+                ${isActive ? '🔥 Aktiv' : '😴 Nicht aktiv'}
+            `;
+            
+            document.body.appendChild(tooltip);
+            
+            // Positioniere Tooltip
+            const rect = this.getBoundingClientRect();
+            tooltip.style.cssText = `
+                position: fixed;
+                top: ${rect.top - 50}px;
+                left: ${rect.left + rect.width / 2}px;
+                transform: translateX(-50%);
+                background: #333;
+                color: white;
+                padding: 0.5rem;
+                border-radius: 4px;
+                font-size: 0.8rem;
+                z-index: 1000;
+                pointer-events: none;
+            `;
+        });
+        
+        day.addEventListener('mouseleave', function() {
+            const tooltip = document.querySelector('.streak-tooltip');
+            if (tooltip) {
+                tooltip.remove();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

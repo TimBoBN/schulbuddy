@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Benachrichtigungen - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>🔔 Benachrichtigungen</h1>
+            <p class="text-muted">Deine Nachrichten und Erinnerungen</p>
+        </div>
+    </div>
+
+    <!-- Ungelesen Counter -->
+    {% if unread_count > 0 %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Du hast {{ unread_count }} ungelesene Benachrichtigungen
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Benachrichtigungen -->
+    {% if notifications %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📨 Alle Benachrichtigungen</h5>
+                </div>
+                <div class="card-body">
+                    {% for notification in notifications %}
+                    <div class="notification-item {{ 'unread' if not notification.is_read else 'read' }} mb-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="notification-content">
+                                <div class="notification-header">
+                                    <span class="notification-icon">
+                                        {% if notification.notification_type == 'achievement' %}
+                                            🏆
+                                        {% elif notification.notification_type == 'reminder' %}
+                                            ⏰
+                                        {% elif notification.notification_type == 'deadline' %}
+                                            📅
+                                        {% elif notification.notification_type == 'grade' %}
+                                            📊
+                                        {% else %}
+                                            🔔
+                                        {% endif %}
+                                    </span>
+                                    <h6 class="notification-title">{{ notification.title }}</h6>
+                                    {% if not notification.is_read %}
+                                        <span class="badge bg-primary">Neu</span>
+                                    {% endif %}
+                                </div>
+                                <p class="notification-message">{{ notification.message }}</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {{ notification.created_at.strftime('%d.%m.%Y %H:%M') }}
+                                </small>
+                            </div>
+                            <div class="notification-actions">
+                                {% if not notification.is_read %}
+                                    <a href="{{ url_for('statistics.mark_notification_read', notification_id=notification.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-check me-1"></i>
+                                        Als gelesen markieren
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="empty-state">
+                        <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                        <h5>Keine Benachrichtigungen</h5>
+                        <p class="text-muted">Du hast noch keine Benachrichtigungen erhalten.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Zurück Button -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <a href="{{ url_for('statistics.statistics') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Zurück zu Statistiken
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.notification-item {
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    transition: all 0.2s;
+}
+
+.notification-item.unread {
+    background-color: #f8f9fa;
+    border-left: 4px solid #007bff;
+}
+
+.notification-item.read {
+    background-color: transparent;
+    opacity: 0.8;
+}
+
+.notification-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.notification-icon {
+    font-size: 1.5rem;
+}
+
+.notification-title {
+    margin: 0;
+    font-weight: 600;
+    color: var(--bs-primary);
+}
+
+.notification-message {
+    margin-bottom: 0.5rem;
+    color: var(--bs-body-color);
+}
+
+.notification-actions {
+    margin-left: 1rem;
+    flex-shrink: 0;
+}
+
+.empty-state {
+    padding: 3rem 1rem;
+}
+
+[data-bs-theme="dark"] .notification-item.unread {
+    background-color: rgba(13, 110, 253, 0.1);
+    border-left-color: #0d6efd;
+}
+
+[data-bs-theme="dark"] .notification-item {
+    border-color: var(--bs-border-color);
+}
+</style>
+{% endblock %}

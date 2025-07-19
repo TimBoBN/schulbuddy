@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Neuen Benutzer erstellen - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Admin-Navigation -->
+    {% include 'admin_nav.html' %}
+    
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Neuen Benutzer erstellen
+                    </h3>
+                    <a href="{{ url_for('admin.admin_users') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>
+                        Zurück
+                    </a>
+                </div>
+                
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">
+                                        <i class="fas fa-user me-1"></i>
+                                        Benutzername *
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="username" 
+                                           name="username" 
+                                           required
+                                           autocomplete="username">
+                                    <div class="form-text">
+                                        Eindeutiger Name für den Benutzer
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">
+                                        <i class="fas fa-envelope me-1"></i>
+                                        E-Mail *
+                                    </label>
+                                    <input type="email" 
+                                           class="form-control" 
+                                           id="email" 
+                                           name="email" 
+                                           required
+                                           autocomplete="email">
+                                    <div class="form-text">
+                                        Gültige E-Mail-Adresse
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">
+                                        <i class="fas fa-lock me-1"></i>
+                                        Passwort *
+                                    </label>
+                                    <input type="password" 
+                                           class="form-control" 
+                                           id="password" 
+                                           name="password" 
+                                           required
+                                           autocomplete="new-password">
+                                    <div class="form-text">
+                                        Mindestens 6 Zeichen
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="confirm_password" class="form-label">
+                                        <i class="fas fa-lock me-1"></i>
+                                        Passwort bestätigen *
+                                    </label>
+                                    <input type="password" 
+                                           class="form-control" 
+                                           id="confirm_password" 
+                                           name="confirm_password" 
+                                           required
+                                           autocomplete="new-password">
+                                    <div class="form-text">
+                                        Passwort erneut eingeben
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-user-shield me-1"></i>
+                                        Berechtigung
+                                    </label>
+                                    <div class="form-check">
+                                        <input type="checkbox" 
+                                               class="form-check-input" 
+                                               id="is_admin" 
+                                               name="is_admin">
+                                        <label class="form-check-label" for="is_admin">
+                                            Administrator
+                                        </label>
+                                    </div>
+                                    <div class="form-text">
+                                        Administratoren haben Vollzugriff auf das System
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Hinweise
+                                    </label>
+                                    <div class="alert alert-info">
+                                        <ul class="mb-0">
+                                            <li>Neue Benutzer sind standardmäßig aktiv</li>
+                                            <li>Der Benutzer kann sein Passwort später ändern</li>
+                                            <li>Admin-Rechte können später angepasst werden</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <hr>
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-1"></i>
+                                            Benutzer erstellen
+                                        </button>
+                                        <a href="{{ url_for('admin.admin_users') }}" class="btn btn-secondary ms-2">
+                                            <i class="fas fa-times me-1"></i>
+                                            Abbrechen
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Passwort-Validierung
+document.getElementById('confirm_password').addEventListener('input', function() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = this.value;
+    
+    if (password !== confirmPassword) {
+        this.setCustomValidity('Passwörter stimmen nicht überein');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+
+document.getElementById('password').addEventListener('input', function() {
+    const confirmPassword = document.getElementById('confirm_password');
+    
+    if (this.value.length < 6) {
+        this.setCustomValidity('Passwort muss mindestens 6 Zeichen lang sein');
+    } else {
+        this.setCustomValidity('');
+    }
+    
+    // Überprüfe auch das Bestätigungspasswort
+    if (confirmPassword.value && this.value !== confirmPassword.value) {
+        confirmPassword.setCustomValidity('Passwörter stimmen nicht überein');
+    } else {
+        confirmPassword.setCustomValidity('');
+    }
+});
+</script>
+{% endblock %}

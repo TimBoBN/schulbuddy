@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}2FA-Verifizierung - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        2FA-Verifizierung
+                    </h3>
+                </div>
+                
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="mb-3">
+                            <i class="fas fa-mobile-alt fa-3x text-primary"></i>
+                        </div>
+                        <h5>Sicherheitscode erforderlich</h5>
+                        <p class="text-muted">
+                            Öffne deine Authenticator-App und gib den 6-stelligen Code ein.
+                        </p>
+                    </div>
+                    
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="token" class="form-label">
+                                <i class="fas fa-lock me-1"></i>
+                                6-stelliger Code
+                            </label>
+                            <input type="text" 
+                                   class="form-control form-control-lg text-center" 
+                                   id="token" 
+                                   name="token" 
+                                   placeholder="123456"
+                                   pattern="[0-9]{6}"
+                                   maxlength="6"
+                                   required
+                                   autocomplete="one-time-code"
+                                   style="letter-spacing: 0.5em;"
+                                   autofocus>
+                            <div class="form-text">
+                                Der Code ändert sich alle 30 Sekunden
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-check me-2"></i>
+                                Verifizieren
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('auth.logout') }}" class="btn btn-link">
+                            <i class="fas fa-sign-out-alt me-1"></i>
+                            Abmelden
+                        </a>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Probleme?</strong> Stelle sicher, dass die Uhrzeit auf deinem Gerät korrekt eingestellt ist.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-Format für Token-Eingabe
+document.getElementById('token').addEventListener('input', function(e) {
+    // Entferne alle Nicht-Ziffern
+    let value = e.target.value.replace(/[^0-9]/g, '');
+    
+    // Begrenze auf 6 Stellen
+    if (value.length > 6) {
+        value = value.slice(0, 6);
+    }
+    
+    e.target.value = value;
+});
+
+// Auto-Submit bei 6 Stellen
+document.getElementById('token').addEventListener('input', function(e) {
+    if (e.target.value.length === 6) {
+        // Kurze Verzögerung für bessere UX
+        setTimeout(() => {
+            if (e.target.value.length === 6) {
+                e.target.form.submit();
+            }
+        }, 500);
+    }
+});
+
+// Countdown für Token-Gültigkeit (optional)
+let countdown = 30;
+const updateCountdown = () => {
+    const now = new Date();
+    const seconds = now.getSeconds();
+    const remaining = 30 - (seconds % 30);
+    
+    if (remaining !== countdown) {
+        countdown = remaining;
+        // Optional: Zeige Countdown an
+        // document.getElementById('countdown').textContent = `Neuer Code in ${countdown}s`;
+    }
+};
+
+// Aktualisiere Countdown jede Sekunde
+setInterval(updateCountdown, 1000);
+updateCountdown();
+</script>
+{% endblock %}

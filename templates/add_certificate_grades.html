@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Zeugnisnoten hinzufügen{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="header-section">
+                <h1 class="page-title">
+                    <i class="fas fa-plus me-2"></i>
+                    Zeugnisnoten hinzufügen
+                </h1>
+                <p class="page-subtitle">Trage deine Zeugnisnoten ein</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-certificate me-2"></i>
+                        Zeugnisnoten eingeben
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="school_year" class="form-label">Schuljahr</label>
+                                <select class="form-select" id="school_year" name="school_year" required>
+                                    <option value="{{ current_school_year }}" selected>{{ current_school_year }}</option>
+                                    <option value="2023/24">2023/24</option>
+                                    <option value="2024/25">2024/25</option>
+                                    <option value="2025/26">2025/26</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="semester" class="form-label">Halbjahr</label>
+                                <select class="form-select" id="semester" name="semester" required>
+                                    <option value="1" {{ 'selected' if current_semester == 1 else '' }}>1. Halbjahr</option>
+                                    <option value="2" {{ 'selected' if current_semester == 2 else '' }}>2. Halbjahr</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grades-section">
+                            <h6 class="mb-3">
+                                <i class="fas fa-graduation-cap me-2"></i>
+                                Noten nach Fächern
+                            </h6>
+                            <div class="row">
+                                {% for subject in subjects %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="subject-input">
+                                        <label for="grade_{{ subject }}" class="form-label">{{ subject }}</label>
+                                        <input type="number" 
+                                               class="form-control grade-input" 
+                                               id="grade_{{ subject }}" 
+                                               name="grade_{{ subject }}" 
+                                               min="1" 
+                                               max="6" 
+                                               step="0.1" 
+                                               placeholder="Note (1-6)"
+                                               onchange="updateGradeColor(this)">
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Zeugnisnoten speichern
+                            </button>
+                            <a href="{{ url_for('grades.certificate_grades') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Abbrechen
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.subject-input {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.subject-input:hover {
+    background: var(--hover-bg);
+}
+
+.grade-input {
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.grade-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--primary-rgb), 0.25);
+}
+
+.form-actions {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.form-actions .btn {
+    margin: 0 0.5rem;
+}
+
+.grades-section {
+    margin-bottom: 2rem;
+}
+
+.grades-section h6 {
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+/* Grade color feedback */
+.grade-input.grade-1 { border-color: #28a745; background-color: rgba(40, 167, 69, 0.1); }
+.grade-input.grade-2 { border-color: #17a2b8; background-color: rgba(23, 162, 184, 0.1); }
+.grade-input.grade-3 { border-color: #ffc107; background-color: rgba(255, 193, 7, 0.1); }
+.grade-input.grade-4 { border-color: #fd7e14; background-color: rgba(253, 126, 20, 0.1); }
+.grade-input.grade-5 { border-color: #dc3545; background-color: rgba(220, 53, 69, 0.1); }
+.grade-input.grade-6 { border-color: #6f42c1; background-color: rgba(111, 66, 193, 0.1); }
+</style>
+
+<script>
+function updateGradeColor(input) {
+    const value = parseFloat(input.value);
+    
+    // Remove all grade classes
+    input.classList.remove('grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5', 'grade-6');
+    
+    if (value >= 1 && value <= 6) {
+        const gradeClass = 'grade-' + Math.round(value);
+        input.classList.add(gradeClass);
+    }
+}
+
+// Auto-fill grade colors on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const gradeInputs = document.querySelectorAll('.grade-input');
+    gradeInputs.forEach(input => {
+        if (input.value) {
+            updateGradeColor(input);
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,512 @@
+{% extends "base.html" %}
+
+{% block title %}Statistiken - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1>📊 Lernstatistiken</h1>
+                    <p class="text-muted">Dein Lernfortschritt im Überblick</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('statistics.streaks') }}" class="btn btn-outline-warning">
+                        <i class="fas fa-fire"></i> Streak-Übersicht
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gamification Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center bg-primary text-white">
+                <div class="card-body">
+                    <h3>{{ user.level }}</h3>
+                    <p class="mb-0">Level</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-success text-white">
+                <div class="card-body">
+                    <h3>{{ user.total_points }}</h3>
+                    <p class="mb-0">Punkte</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-warning text-white">
+                <div class="card-body">
+                    <h3>{{ user.current_streak }}</h3>
+                    <p class="mb-0">Aktuelle Serie</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-info text-white">
+                <div class="card-body">
+                    <h3>{{ user.longest_streak }}</h3>
+                    <p class="mb-0">Längste Serie</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Basis-Statistiken -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4>{{ total_tasks }}</h4>
+                    <p class="text-muted mb-0">Aufgaben gesamt</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4>{{ completed_tasks }}</h4>
+                    <p class="text-muted mb-0">Erledigte Aufgaben</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4>{{ total_grades }}</h4>
+                    <p class="text-muted mb-0">Noten eingetragen</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aktivitäts-Heatmap -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📅 Aktivitäts-Heatmap (Letztes Jahr)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="yearly-heatmaps">
+                        <div id="heatmap-container">
+                            <!-- Wird durch JavaScript gefüllt -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wöchentliche Aktivität -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📈 Wöchentliche Aktivität</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="weeklyChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🎯 Fach-Performance</h5>
+                </div>
+                <div class="card-body">
+                    {% if subject_performance %}
+                        {% for subject, data in subject_performance.items() %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>{{ subject }}</span>
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-{{ 'success' if data.average <= 2 else 'warning' if data.average <= 4 else 'danger' }} me-2">{{ data.average }}</span>
+                                    <small class="text-muted">({{ data.count }} Noten)</small>
+                                    {% if data.trend == 'improving' %}
+                                        <i class="fas fa-arrow-up text-success ms-1"></i>
+                                    {% else %}
+                                        <i class="fas fa-minus text-muted ms-1"></i>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">Noch keine Noten vorhanden</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schnellaktionen -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🚀 Schnellaktionen</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <a href="{{ url_for('statistics.achievements') }}" class="btn btn-primary btn-block mb-2">
+                                <i class="fas fa-trophy me-1"></i> Achievements
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('statistics.notifications') }}" class="btn btn-info btn-block mb-2">
+                                <i class="fas fa-bell me-1"></i> Benachrichtigungen
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('statistics.export_data') }}" class="btn btn-success btn-block mb-2">
+                                <i class="fas fa-download me-1"></i> Daten exportieren
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('main.index') }}" class="btn btn-secondary btn-block mb-2">
+                                <i class="fas fa-home me-1"></i> Zurück zum Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Heatmap-Daten
+const activityData = {{ activity_data | tojson }};
+const weeklyStats = {{ weekly_stats | tojson }};
+
+console.log('ActivityData received:', activityData);
+console.log('Today:', new Date().toISOString().split('T')[0]);
+
+// Jahresweise Heatmaps erstellen (wie GitHub)
+function createYearlyHeatmaps() {
+    const heatmapContainer = document.getElementById('heatmap-container');
+    if (!heatmapContainer) {
+        console.error('Heatmap container not found');
+        return;
+    }
+    
+    // Bestimme verfügbare Jahre basierend auf Aktivitätsdaten
+    const availableYears = new Set();
+    Object.keys(activityData).forEach(dateStr => {
+        const year = new Date(dateStr).getFullYear();
+        availableYears.add(year);
+    });
+    
+    // Füge aktuelles Jahr hinzu, auch wenn keine Daten vorhanden
+    const currentYear = new Date().getFullYear();
+    availableYears.add(currentYear);
+    
+    // Sortiere Jahre absteigend (neueste zuerst)
+    const sortedYears = Array.from(availableYears).sort().reverse();
+    
+    console.log('Creating heatmaps for years:', sortedYears);
+    
+    let html = '';
+    
+    sortedYears.forEach(year => {
+        html += `
+            <div class="year-heatmap mb-4">
+                <h6 class="year-title">${year}</h6>
+                <div class="heatmap-wrapper">
+                    <div class="months-labels">
+                        <span>Jan</span><span>Feb</span><span>Mär</span><span>Apr</span>
+                        <span>Mai</span><span>Jun</span><span>Jul</span><span>Aug</span>
+                        <span>Sep</span><span>Okt</span><span>Nov</span><span>Dez</span>
+                    </div>
+                    <div class="heatmap-grid" id="heatmap-${year}">
+                        <!-- Wird durch JavaScript gefüllt -->
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    // Legende hinzufügen
+    html += `
+        <div class="heatmap-legend">
+            <span class="legend-text">Weniger</span>
+            <div class="legend-scale">
+                <div class="legend-item" data-level="0"></div>
+                <div class="legend-item" data-level="1"></div>
+                <div class="legend-item" data-level="2"></div>
+                <div class="legend-item" data-level="3"></div>
+                <div class="legend-item" data-level="4"></div>
+            </div>
+            <span class="legend-text">Mehr</span>
+        </div>
+    `;
+    
+    heatmapContainer.innerHTML = html;
+    
+    // Erstelle Heatmap für jedes Jahr
+    sortedYears.forEach(year => {
+        createYearHeatmap(year);
+    });
+}
+
+function createYearHeatmap(year) {
+    const heatmapGrid = document.getElementById(`heatmap-${year}`);
+    if (!heatmapGrid) return;
+    
+    // Bestimme ob Schaltjahr
+    const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    const daysInYear = isLeapYear ? 366 : 365;
+    
+    // Erstelle Datum für 1. Januar des Jahres
+    const startDate = new Date(year, 0, 1);
+    
+    // Bestimme Wochentag des ersten Tages (0 = Sonntag, 1 = Montag, etc.)
+    const firstDayOfWeek = startDate.getDay();
+    const adjustedFirstDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1; // Montag = 0
+    
+    // Füge leere Tage am Anfang hinzu
+    for (let i = 0; i < adjustedFirstDay; i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.className = 'heatmap-day empty';
+        heatmapGrid.appendChild(emptyDay);
+    }
+    
+    // Erstelle alle Tage des Jahres
+    for (let dayOfYear = 0; dayOfYear < daysInYear; dayOfYear++) {
+        const currentDate = new Date(year, 0, 1 + dayOfYear);
+        const dateStr = currentDate.toISOString().split('T')[0];
+        
+        const dayElement = document.createElement('div');
+        dayElement.className = 'heatmap-day';
+        
+        const count = activityData[dateStr] || 0;
+        let level = 0;
+        if (count > 0) level = 1;
+        if (count > 2) level = 2;
+        if (count > 4) level = 3;
+        if (count > 6) level = 4;
+        
+        dayElement.setAttribute('data-level', level);
+        dayElement.title = `${currentDate.toLocaleDateString('de-DE', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        })}: ${count} Aktivitäten`;
+        
+        heatmapGrid.appendChild(dayElement);
+    }
+    
+    console.log(`Heatmap für ${year} erstellt (${daysInYear} Tage)`);
+}
+
+// Wöchentliches Chart
+function createWeeklyChart() {
+    const ctx = document.getElementById('weeklyChart').getContext('2d');
+    
+    const labels = [];
+    const taskData = [];
+    const gradeData = [];
+    
+    for (const [week, data] of Object.entries(weeklyStats)) {
+        labels.push(data.week_start);
+        taskData.push(data.tasks);
+        gradeData.push(data.grades);
+    }
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels.reverse(),
+            datasets: [{
+                label: 'Aufgaben erledigt',
+                data: taskData.reverse(),
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }, {
+                label: 'Noten eingetragen',
+                data: gradeData.reverse(),
+                borderColor: 'rgb(255, 99, 132)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+// Initialisierung
+document.addEventListener('DOMContentLoaded', function() {
+    createYearlyHeatmaps();
+    createWeeklyChart();
+});
+</script>
+
+<style>
+/* Jahresweise Heatmaps (GitHub-Style) */
+.yearly-heatmaps {
+    max-height: 600px;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.year-heatmap {
+    margin-bottom: 3rem;
+}
+
+.year-title {
+    font-weight: bold;
+    color: var(--bs-body-color);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.heatmap-wrapper {
+    position: relative;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+}
+
+.months-labels {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 2px;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--bs-text-muted);
+    text-align: center;
+}
+
+.heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(53, 1fr);
+    grid-template-rows: repeat(7, 1fr);
+    gap: 2px;
+    grid-auto-flow: column;
+    min-width: 600px;
+}
+
+.heatmap-day {
+    width: 11px;
+    height: 11px;
+    border-radius: 2px;
+    background-color: #ebedf0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.heatmap-day.empty {
+    background-color: transparent;
+    cursor: default;
+}
+
+.heatmap-day:hover:not(.empty) {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 1px;
+}
+
+.heatmap-day[data-level="1"] { background-color: #9be9a8; }
+.heatmap-day[data-level="2"] { background-color: #40c463; }
+.heatmap-day[data-level="3"] { background-color: #30a14e; }
+.heatmap-day[data-level="4"] { background-color: #216e39; }
+
+.heatmap-legend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    font-size: 0.8rem;
+    color: var(--bs-text-muted);
+}
+
+.legend-scale {
+    display: flex;
+    gap: 2px;
+}
+
+.legend-item {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background-color: #ebedf0;
+}
+
+.legend-item[data-level="1"] { background-color: #9be9a8; }
+.legend-item[data-level="2"] { background-color: #40c463; }
+.legend-item[data-level="3"] { background-color: #30a14e; }
+.legend-item[data-level="4"] { background-color: #216e39; }
+
+.legend-text {
+    font-size: 0.75rem;
+}
+
+/* Dark Mode Support */
+[data-bs-theme="dark"] .heatmap-day {
+    background-color: #161b22;
+}
+
+[data-bs-theme="dark"] .heatmap-day[data-level="1"] { background-color: #0e4429; }
+[data-bs-theme="dark"] .heatmap-day[data-level="2"] { background-color: #006d32; }
+[data-bs-theme="dark"] .heatmap-day[data-level="3"] { background-color: #26a641; }
+[data-bs-theme="dark"] .heatmap-day[data-level="4"] { background-color: #39d353; }
+
+[data-bs-theme="dark"] .legend-item {
+    background-color: #161b22;
+}
+
+[data-bs-theme="dark"] .legend-item[data-level="1"] { background-color: #0e4429; }
+[data-bs-theme="dark"] .legend-item[data-level="2"] { background-color: #006d32; }
+[data-bs-theme="dark"] .legend-item[data-level="3"] { background-color: #26a641; }
+[data-bs-theme="dark"] .legend-item[data-level="4"] { background-color: #39d353; }
+
+[data-bs-theme="dark"] .heatmap-day:hover:not(.empty) {
+    outline-color: var(--bs-primary);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .heatmap-wrapper {
+        overflow-x: scroll;
+    }
+    
+    .months-labels {
+        min-width: 600px;
+    }
+    
+    .heatmap-grid {
+        min-width: 600px;
+    }
+}
+
+/* Scrollbar Styling */
+.yearly-heatmaps::-webkit-scrollbar {
+    width: 8px;
+}
+
+.yearly-heatmaps::-webkit-scrollbar-track {
+    background: var(--bs-body-bg);
+}
+
+.yearly-heatmaps::-webkit-scrollbar-thumb {
+    background: var(--bs-border-color);
+    border-radius: 4px;
+}
+
+.yearly-heatmaps::-webkit-scrollbar-thumb:hover {
+    background: var(--bs-secondary);
+}
+</style>
+{% endblock %}

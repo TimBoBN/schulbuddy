@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Profil - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-circle me-2"></i>
+                        Mein Profil
+                    </h3>
+                </div>
+                
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Benutzer-Informationen -->
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Benutzer-Informationen
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-3">
+                                        <div class="col-4"><strong>Benutzername:</strong></div>
+                                        <div class="col-8">{{ current_user.username }}</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-4"><strong>E-Mail:</strong></div>
+                                        <div class="col-8">{{ current_user.email }}</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-4"><strong>Rolle:</strong></div>
+                                        <div class="col-8">
+                                            {% if current_user.is_admin %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-shield-alt me-1"></i>
+                                                    Administrator
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-user me-1"></i>
+                                                    Benutzer
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-4"><strong>Mitglied seit:</strong></div>
+                                        <div class="col-8">{{ current_user.created_at.strftime('%d.%m.%Y') }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Zwei-Faktor-Authentifizierung -->
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-shield-alt me-2"></i>
+                                        Zwei-Faktor-Authentifizierung
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if current_user.two_factor_enabled %}
+                                        <div class="alert alert-success">
+                                            <i class="fas fa-check-circle me-2"></i>
+                                            2FA ist aktiviert
+                                        </div>
+                                        <p class="text-muted">
+                                            Dein Konto ist durch eine zusätzliche Sicherheitsebene geschützt.
+                                        </p>
+                                        
+                                        <!-- Deaktivierungs-Form -->
+                                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#disable2FAModal">
+                                            <i class="fas fa-times me-1"></i>
+                                            2FA deaktivieren
+                                        </button>
+                                    {% else %}
+                                        <div class="alert alert-warning">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            2FA ist nicht aktiviert
+                                        </div>
+                                        <p class="text-muted">
+                                            Erhöhe die Sicherheit deines Kontos durch die Aktivierung der Zwei-Faktor-Authentifizierung.
+                                        </p>
+                                        
+                                        <a href="{{ url_for('auth.setup_2fa') }}" class="btn btn-primary">
+                                            <i class="fas fa-shield-alt me-1"></i>
+                                            2FA aktivieren
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-chart-bar me-2"></i>
+                                        Meine Statistiken
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <h4 class="text-primary">{{ current_user.tasks|length }}</h4>
+                                                <p class="text-muted">Aufgaben</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <h4 class="text-success">{{ current_user.grades|length }}</h4>
+                                                <p class="text-muted">Noten</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <h4 class="text-info">{{ (current_user.tasks|selectattr('completed', 'equalto', false)|list)|length }}</h4>
+                                                <p class="text-muted">Offene Aufgaben</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <h4 class="text-warning">{{ (current_user.tasks|selectattr('completed', 'equalto', true)|list)|length }}</h4>
+                                                <p class="text-muted">Erledigte Aufgaben</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2FA Deaktivierungs-Modal -->
+{% if current_user.two_factor_enabled %}
+<div class="modal fade" id="disable2FAModal" tabindex="-1" aria-labelledby="disable2FAModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="disable2FAModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    2FA deaktivieren
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('auth.disable_2fa') }}">
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warnung:</strong> Das Deaktivieren der Zwei-Faktor-Authentifizierung reduziert die Sicherheit deines Kontos erheblich.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-lock me-1"></i>
+                            Bestätige mit deinem Passwort
+                        </label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>
+                        Abbrechen
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        2FA deaktivieren
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

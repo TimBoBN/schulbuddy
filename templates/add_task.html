@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Neue Aufgabe - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>➕ Neue Aufgabe hinzufügen</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label class="form-label">Titel:</label>
+                            <input class="form-control" type="text" name="title" placeholder="z.B. Mathematik Hausaufgabe Seite 42" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Fach:</label>
+                            <select class="form-select" name="subject" required>
+                                <option value="">-- Fach wählen --</option>
+                                {% for subject_key, subject_name in subjects.items() %}
+                                    <option value="{{ subject_key }}">{{ subject_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Aufgabentyp:</label>
+                            <select class="form-select" name="task_type" required>
+                                <option value="homework">📚 Hausaufgabe</option>
+                                <option value="exam">📝 Klassenarbeit</option>
+                                <option value="test">🧠 Test</option>
+                                <option value="project">🎯 Projekt</option>
+                                <option value="other">📋 Sonstiges</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Beschreibung:</label>
+                            <textarea class="form-control" name="description" rows="3" placeholder="Weitere Details zur Aufgabe..."></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Fälligkeitsdatum:</label>
+                            <input class="form-control" type="date" name="due_date" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Datei anhängen (optional):</label>
+                            <input class="form-control" type="file" name="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg">
+                            <small class="form-text text-muted">
+                                Unterstützte Formate: PDF, Word, Textdateien, Bilder
+                            </small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Zurück
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Aufgabe erstellen
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Setze heutiges Datum als Standard
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.querySelector('input[name="due_date"]');
+    if (dateInput && !dateInput.value) {
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        dateInput.value = tomorrow.toISOString().split('T')[0];
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,444 @@
+{% extends "base.html" %}
+
+{% block title %}Admin-Einstellungen - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Admin-Navigation -->
+    {% include 'admin_nav.html' %}
+    
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>
+                        Admin-Einstellungen
+                    </h3>
+                    <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>
+                        Zurück zum Admin-Panel
+                    </a>
+                </div>
+                
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <!-- Sicherheitseinstellungen -->
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-shield-alt me-2"></i>
+                                            Sicherheitseinstellungen
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" 
+                                                       type="checkbox" 
+                                                       id="registration_enabled" 
+                                                       name="registration_enabled"
+                                                       {% if settings.registration_enabled %}checked{% endif %}>
+                                                <label class="form-check-label" for="registration_enabled">
+                                                    <i class="fas fa-user-plus me-1"></i>
+                                                    Registrierung aktiviert
+                                                </label>
+                                            </div>
+                                            <div class="form-text">
+                                                Erlaubt neuen Benutzern sich zu registrieren
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" 
+                                                       type="checkbox" 
+                                                       id="require_2fa" 
+                                                       name="require_2fa"
+                                                       {% if settings.require_2fa %}checked{% endif %}>
+                                                <label class="form-check-label" for="require_2fa">
+                                                    <i class="fas fa-mobile-alt me-1"></i>
+                                                    2FA verpflichtend
+                                                </label>
+                                            </div>
+                                            <div class="form-text">
+                                                Macht Zwei-Faktor-Authentifizierung für alle Benutzer verpflichtend
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="max_login_attempts" class="form-label">
+                                                <i class="fas fa-shield-alt me-1"></i>
+                                                Maximale Login-Versuche
+                                            </label>
+                                            <input type="number" 
+                                                   class="form-control" 
+                                                   id="max_login_attempts" 
+                                                   name="max_login_attempts" 
+                                                   value="{{ settings.max_login_attempts }}"
+                                                   min="3"
+                                                   max="20"
+                                                   placeholder="5">
+                                            <div class="form-text">
+                                                Anzahl fehlgeschlagener Login-Versuche bevor Account gesperrt wird (3-20)
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <strong>Hinweis:</strong> Diese Einstellungen wirken sich auf alle Benutzer aus.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- App-Einstellungen -->
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-sliders-h me-2"></i>
+                                            App-Einstellungen
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="app_name" class="form-label">
+                                                <i class="fas fa-tag me-1"></i>
+                                                App-Name
+                                            </label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="app_name" 
+                                                   name="app_name" 
+                                                   value="{{ settings.app_name }}"
+                                                   placeholder="SchulBuddy">
+                                            <div class="form-text">
+                                                Name der Anwendung (wird im Browser-Tab angezeigt)
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="max_users" class="form-label">
+                                                <i class="fas fa-users me-1"></i>
+                                                Maximale Benutzeranzahl
+                                            </label>
+                                            <input type="number" 
+                                                   class="form-control" 
+                                                   id="max_users" 
+                                                   name="max_users" 
+                                                   value="{{ settings.max_users }}"
+                                                   min="1"
+                                                   placeholder="100">
+                                            <div class="form-text">
+                                                Maximale Anzahl von Benutzern die sich registrieren können
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="remember_login_days" class="form-label">
+                                                <i class="fas fa-calendar me-1"></i>
+                                                Remember-Me Dauer (Tage)
+                                            </label>
+                                            <input type="number" 
+                                                   class="form-control" 
+                                                   id="remember_login_days" 
+                                                   name="remember_login_days" 
+                                                   value="{{ settings.remember_login_days }}"
+                                                   min="1"
+                                                   max="365"
+                                                   placeholder="30">
+                                            <div class="form-text">
+                                                Wie lange "Angemeldet bleiben" gültig ist (1-365 Tage)
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="alert alert-warning">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            <strong>Achtung:</strong> Änderungen werden sofort wirksam.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Timeout-Einstellungen -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-clock me-2"></i>
+                                            Timeout-Einstellungen
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label for="session_timeout_minutes" class="form-label">
+                                                        <i class="fas fa-hourglass-half me-1"></i>
+                                                        Session-Timeout (Minuten)
+                                                    </label>
+                                                    <input type="number" 
+                                                           class="form-control" 
+                                                           id="session_timeout_minutes" 
+                                                           name="session_timeout_minutes" 
+                                                           value="{{ settings.session_timeout_minutes }}"
+                                                           min="5"
+                                                           max="1440"
+                                                           placeholder="120">
+                                                    <div class="form-text">
+                                                        Automatischer Logout nach Inaktivität (5-1440 Min)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label for="login_timeout_minutes" class="form-label">
+                                                        <i class="fas fa-sign-in-alt me-1"></i>
+                                                        Login-Timeout (Minuten)
+                                                    </label>
+                                                    <input type="number" 
+                                                           class="form-control" 
+                                                           id="login_timeout_minutes" 
+                                                           name="login_timeout_minutes" 
+                                                           value="{{ settings.login_timeout_minutes }}"
+                                                           min="5"
+                                                           max="480"
+                                                           placeholder="60">
+                                                    <div class="form-text">
+                                                        Maximale Login-Dauer ohne Aktivität (5-480 Min)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label for="two_factor_timeout_minutes" class="form-label">
+                                                        <i class="fas fa-mobile-alt me-1"></i>
+                                                        2FA-Timeout (Minuten)
+                                                    </label>
+                                                    <input type="number" 
+                                                           class="form-control" 
+                                                           id="two_factor_timeout_minutes" 
+                                                           name="two_factor_timeout_minutes" 
+                                                           value="{{ settings.two_factor_timeout_minutes }}"
+                                                           min="1"
+                                                           max="30"
+                                                           placeholder="5">
+                                                    <div class="form-text">
+                                                        Zeit zum Eingeben des 2FA-Codes (1-30 Min)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="login_attempt_timeout_minutes" class="form-label">
+                                                        <i class="fas fa-ban me-1"></i>
+                                                        Login-Sperre Timeout (Minuten)
+                                                    </label>
+                                                    <input type="number" 
+                                                           class="form-control" 
+                                                           id="login_attempt_timeout_minutes" 
+                                                           name="login_attempt_timeout_minutes" 
+                                                           value="{{ settings.login_attempt_timeout_minutes }}"
+                                                           min="5"
+                                                           max="120"
+                                                           placeholder="15">
+                                                    <div class="form-text">
+                                                        Sperrzeit nach zu vielen fehlgeschlagenen Login-Versuchen (5-120 Min)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="alert alert-info">
+                                                    <i class="fas fa-info-circle me-2"></i>
+                                                    <strong>Timeout-Hierarchie:</strong><br>
+                                                    1. Session-Timeout: Globale Inaktivität<br>
+                                                    2. Login-Timeout: Login-spezifische Inaktivität<br>
+                                                    3. 2FA-Timeout: Zeit für 2FA-Eingabe<br>
+                                                    4. Login-Sperre: Schutz vor Brute-Force
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="max_users" class="form-label">
+                                                <i class="fas fa-users me-1"></i>
+                                                Maximale Benutzeranzahl
+                                            </label>
+                                            <input type="number" 
+                                                   class="form-control" 
+                                                   id="max_users" 
+                                                   name="max_users" 
+                                                   value="{{ settings.max_users }}"
+                                                   min="1"
+                                                   placeholder="100">
+                                            <div class="form-text">
+                                                Maximale Anzahl von Benutzern die sich registrieren können
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="alert alert-warning">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            <strong>Achtung:</strong> Änderungen werden sofort wirksam.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-chart-bar me-2"></i>
+                                            System-Statistiken
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row text-center">
+                                            <div class="col-md-2">
+                                                <div class="mb-3">
+                                                    <h4 class="text-primary">{{ total_users }}</h4>
+                                                    <p class="text-muted">Gesamte Benutzer</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="mb-3">
+                                                    <h4 class="text-success">{{ active_users }}</h4>
+                                                    <p class="text-muted">Aktive Benutzer</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="mb-3">
+                                                    <h4 class="text-info">{{ users_with_2fa }}</h4>
+                                                    <p class="text-muted">Benutzer mit 2FA</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="mb-3">
+                                                    <h4 class="text-warning">{{ admin_users }}</h4>
+                                                    <p class="text-muted">Administratoren</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="mb-3">
+                                                    <h4 class="text-secondary">{{ active_sessions }}</h4>
+                                                    <p class="text-muted">Aktive Sessions</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="mb-3">
+                                                    <h4 class="text-danger">
+                                                        <span id="session-timeout-indicator">{{ settings.session_timeout_minutes }}m</span>
+                                                    </h4>
+                                                    <p class="text-muted">Session-Timeout</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <hr>
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-1"></i>
+                                            Einstellungen speichern
+                                        </button>
+                                        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-secondary ms-2">
+                                            <i class="fas fa-times me-1"></i>
+                                            Abbrechen
+                                        </a>
+                                    </div>
+                                    
+                                    <div>
+                                        <button type="button" class="btn btn-outline-info" onclick="exportSettings()">
+                                            <i class="fas fa-download me-1"></i>
+                                            Einstellungen exportieren
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function exportSettings() {
+    const settings = {
+        registration_enabled: document.getElementById('registration_enabled').checked,
+        require_2fa: document.getElementById('require_2fa').checked,
+        app_name: document.getElementById('app_name').value,
+        max_users: document.getElementById('max_users').value,
+        session_timeout_minutes: document.getElementById('session_timeout_minutes').value,
+        login_timeout_minutes: document.getElementById('login_timeout_minutes').value,
+        two_factor_timeout_minutes: document.getElementById('two_factor_timeout_minutes').value,
+        max_login_attempts: document.getElementById('max_login_attempts').value,
+        login_attempt_timeout_minutes: document.getElementById('login_attempt_timeout_minutes').value,
+        remember_login_days: document.getElementById('remember_login_days').value,
+        exported_at: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `schulbuddy-settings-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Live-Update der Session-Timeout-Anzeige
+document.addEventListener('DOMContentLoaded', function() {
+    const sessionTimeoutInput = document.getElementById('session_timeout_minutes');
+    const sessionTimeoutIndicator = document.getElementById('session-timeout-indicator');
+    
+    if (sessionTimeoutInput && sessionTimeoutIndicator) {
+        sessionTimeoutInput.addEventListener('input', function() {
+            const value = this.value || '120';
+            sessionTimeoutIndicator.textContent = value + 'm';
+        });
+    }
+    
+    // Validierung der Timeout-Werte
+    const timeoutInputs = document.querySelectorAll('input[type="number"][id$="_timeout_minutes"], input[type="number"][id$="_attempts"], input[type="number"][id$="_days"]');
+    
+    timeoutInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            const min = parseInt(this.min);
+            const max = parseInt(this.max);
+            const value = parseInt(this.value);
+            
+            if (value < min || value > max) {
+                this.classList.add('is-invalid');
+                this.setCustomValidity(`Wert muss zwischen ${min} und ${max} liegen`);
+            } else {
+                this.classList.remove('is-invalid');
+                this.setCustomValidity('');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

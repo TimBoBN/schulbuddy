@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Noten-Verlauf{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="header-section">
+                <h1 class="page-title">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Noten-Verlauf
+                </h1>
+                <p class="page-subtitle">Entwicklung deiner Noten über die Zeit</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="action-buttons">
+                <a href="{{ url_for('grades.certificate_grades') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-certificate me-2"></i>Zurück zu Zeugnisnoten
+                </a>
+                <a href="{{ url_for('grades.add_certificate_grades') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Zeugnisnoten hinzufügen
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Semester-Durchschnitte -->
+    {% if semester_averages %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Semester-Durchschnitte
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for period_key, period_data in semester_averages.items() %}
+                        <div class="col-md-4 col-lg-3 mb-3">
+                            <div class="average-card">
+                                <div class="period-label">
+                                    {{ period_data.school_year }} - S{{ period_data.semester }}
+                                </div>
+                                <div class="average-value grade-{{ period_data.average|round|int }}">
+                                    {{ period_data.average }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Noten-Verlauf nach Fächern -->
+    {% if progress_data %}
+    <div class="row">
+        {% for subject, subject_data in progress_data.items() %}
+        {% if subject_data.regular_grades or subject_data.final_grades %}
+        <div class="col-lg-6 mb-4">
+            <div class="card subject-progress-card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-book me-2"></i>
+                        {{ subject }}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <!-- Reguläre Noten -->
+                    {% if subject_data.regular_grades %}
+                    <div class="grades-section">
+                        <h6 class="section-title">Reguläre Noten</h6>
+                        <div class="grades-timeline">
+                            {% for grade in subject_data.regular_grades %}
+                            <div class="grade-item">
+                                <div class="grade-badge grade-{{ grade.grade|round|int }}">
+                                    {{ grade.grade }}
+                                </div>
+                                <div class="grade-info">
+                                    <div class="grade-description">{{ grade.description or 'Keine Beschreibung' }}</div>
+                                    <div class="grade-date">
+                                        {{ grade.date or 'Kein Datum' }}
+                                        {% if grade.semester and grade.school_year %}
+                                        - {{ grade.school_year }} S{{ grade.semester }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Zeugnisnoten -->
+                    {% if subject_data.final_grades %}
+                    <div class="grades-section">
+                        <h6 class="section-title">Zeugnisnoten</h6>
+                        <div class="grades-timeline final-grades">
+                            {% for grade in subject_data.final_grades %}
+                            <div class="grade-item final-grade">
+                                <div class="grade-badge grade-{{ grade.grade|round|int }}">
+                                    {{ grade.grade }}
+                                </div>
+                                <div class="grade-info">
+                                    <div class="grade-description">
+                                        <i class="fas fa-certificate me-1"></i>
+                                        {{ grade.description or 'Zeugnisnote' }}
+                                    </div>
+                                    <div class="grade-date">
+                                        {{ grade.date or 'Kein Datum' }}
+                                        {% if grade.semester and grade.school_year %}
+                                        - {{ grade.school_year }} S{{ grade.semester }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3>Keine Noten vorhanden</h3>
+                <p>Es sind noch keine Noten vorhanden, um einen Verlauf anzuzeigen.</p>
+                <a href="{{ url_for('grades.add_certificate_grades') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Erste Noten hinzufügen
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.subject-progress-card {
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    height: 100%;
+}
+
+.average-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.average-card:hover {
+    background: var(--hover-bg);
+    transform: translateY(-2px);
+}
+
+.period-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.average-value {
+    font-size: 2rem;
+    font-weight: 700;
+    padding: 0.5rem;
+    border-radius: 8px;
+    color: white;
+}
+
+.grades-section {
+    margin-bottom: 2rem;
+}
+
+.section-title {
+    color: var(--text-color);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.grades-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.grade-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.grade-item:hover {
+    background: var(--hover-bg);
+}
+
+.grade-item.final-grade {
+    border-left: 4px solid var(--primary);
+}
+
+.grade-badge {
+    min-width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: white;
+}
+
+.grade-info {
+    flex: 1;
+}
+
+.grade-description {
+    font-weight: 500;
+    color: var(--text-color);
+    margin-bottom: 0.25rem;
+}
+
+.grade-date {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.final-grades .grade-item {
+    border-left: 4px solid var(--warning);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+.action-buttons {
+    text-align: center;
+}
+
+.action-buttons .btn {
+    margin: 0 0.5rem;
+}
+
+/* Grade colors */
+.grade-1 { background: linear-gradient(135deg, #28a745, #20c997); }
+.grade-2 { background: linear-gradient(135deg, #17a2b8, #20c997); }
+.grade-3 { background: linear-gradient(135deg, #ffc107, #fd7e14); }
+.grade-4 { background: linear-gradient(135deg, #fd7e14, #dc3545); }
+.grade-5 { background: linear-gradient(135deg, #dc3545, #6f42c1); }
+.grade-6 { background: linear-gradient(135deg, #6f42c1, #343a40); }
+</style>
+{% endblock %}
