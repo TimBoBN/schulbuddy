@@ -8,6 +8,7 @@ import io
 import base64
 import json
 import secrets
+from flask import current_app
 
 db = SQLAlchemy()
 
@@ -448,14 +449,19 @@ class Notification(db.Model):
     
     user = db.relationship('User', backref='notifications')
 
+def ensure_achievements():
+    with current_app.app_context():
+        from models import init_achievements
+        init_achievements()
+
 def init_db(app):
     """Initialisiere die Datenbank"""
     db.init_app(app)
     
     with app.app_context():
         db.create_all()
+        ensure_achievements()
         print("Datenbank initialisiert!")
-
         # Erstelle Admin-Benutzer falls nicht vorhanden (erst nach create_all!)
         try:
             if not User.query.filter_by(id=1).first():
