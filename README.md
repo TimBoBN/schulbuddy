@@ -450,6 +450,62 @@ mkdir ssl
 server_name your-domain.com;
 ```
 
+## 🍓 Raspberry Pi Spezifische Anleitung
+
+### ⚡ Sofort-Fix (One-Liner):
+```bash
+chmod +x emergency-raspberry-pi.sh && ./emergency-raspberry-pi.sh
+```
+
+### Problem: "unable to open database file"
+
+**Schnelle Lösung:**
+```bash
+# Direkt auf dem Raspberry Pi
+chmod +x fix-raspberry-pi.sh
+./fix-raspberry-pi.sh
+```
+
+**Emergency Fix (falls alles andere fehlschlägt):**
+```bash
+chmod +x emergency-raspberry-pi.sh
+./emergency-raspberry-pi.sh
+```
+Dieses Skript versucht **3 verschiedene Methoden** und wird definitiv funktionieren!
+
+**Manuelle Lösung:**
+```bash
+# 1. Container stoppen
+sudo docker-compose down
+
+# 2. Berechtigungen reparieren
+sudo rm -rf instance/schulbuddy.db
+mkdir -p instance static/uploads
+sudo chown -R $USER:$USER instance static
+chmod -R 755 instance static
+
+# 3. Container mit User ID starten
+echo "
+version: '3.8'
+services:
+  schulbuddy:
+    user: '1000:1000'
+    environment:
+      - DATABASE_URL=sqlite:///instance/schulbuddy.db
+" > docker-compose.override.yml
+
+# 4. Neu bauen und starten
+sudo docker-compose build --no-cache
+sudo docker-compose up -d
+```
+
+**Raspberry Pi IP finden:**
+```bash
+hostname -I
+```
+
+SchulBuddy läuft dann unter: `http://[RASPBERRY-PI-IP]:5000`
+
 ## 🔍 Troubleshooting
 
 ### 🛠️ Quick Diagnostics

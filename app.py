@@ -16,12 +16,34 @@ def create_app():
     app.config.from_object(Config)
     
     # Sicherstellen dass notwendige Verzeichnisse existieren
-    os.makedirs(os.path.dirname(app.config.get('SQLALCHEMY_DATABASE_URI', '').replace('sqlite:///', '')), exist_ok=True)
+    db_path = app.config.get('SQLALCHEMY_DATABASE_URI', '').replace('sqlite:///', '')
+    if db_path and not db_path.startswith(':memory:'):
+        db_dir = os.path.dirname(db_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
+            # Setze Berechtigungen für das Datenbankverzeichnis
+            try:
+                os.chmod(db_dir, 0o755)
+            except (OSError, PermissionError):
+                pass
+    
     os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
     
-    # Datenbank initialisieren
+    # Datenbank initialisieren (mit Fehlerbehandlung)
     with app.app_context():
-        init_db(app)
+        try:
+            init_db(app)
+        except Exception as e:
+            print(f"⚠️ Datenbankinitialisierung fehlgeschlagen: {e}")
+            print("📝 Versuche später erneut über /init-db")
+            # Erstelle eine Route für manuelle DB-Initialisierung
+            @app.route('/init-db')
+            def manual_init_db():
+                try:
+                    init_db(app)
+                    return {'status': 'success', 'message': 'Datenbank erfolgreich initialisiert'}, 200
+                except Exception as err:
+                    return {'status': 'error', 'message': str(err)}, 500
     
     # Login Manager konfigurieren
     login_manager = LoginManager()
