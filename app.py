@@ -15,9 +15,40 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    # Datenbank initialisieren
+    # Ensure instance directory exists
+    instance_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance")
+    os.makedirs(instance_dir, exist_ok=True)
+    
+    # Create database file if it doesn't exist
+    db_path = app.config.get('DATABASE_PATH', os.path.join(instance_dir, "schulbuddy.db"))
+    if not os.path.exists(db_path):
+        import sqlite3
+        conn = sqlite3.connect(db_path)
+        conn.close()
+        print(f"Created database file: {db_path}")
+    
+    # Initialize database
+    db.init_app(app)
+    
+    # Create database tables
     with app.app_context():
-        init_db(app)
+        try:
+            db.create_all()
+            print("Database tables created successfully!")
+            
+            # Create admin user if not exists
+            from models import User
+            if not User.query.filter_by(id=1).first():
+                admin = User(
+                    username="admin", email="admin@schulbuddy.local", is_admin=True
+                )
+                admin.set_password("admin")
+                db.session.add(admin)
+                db.session.commit()
+                print("Admin user created!")
+        except Exception as e:
+            print(f"Database initialization error: {e}")
+            raise
     
     # Login Manager konfigurieren
     login_manager = LoginManager()

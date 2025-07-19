@@ -1,3 +1,12 @@
+<<<<<<< HEAD
+=======
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+docker-compose.override.yml
+
+>>>>>>> 04627b963babc5ecf9f1ddb34bf0f7bd3421bfff
 # Python
 __pycache__/
 *.py[cod]
@@ -19,6 +28,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+<<<<<<< HEAD
 MANIFEST
 
 # PyInstaller
@@ -49,13 +59,23 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+=======
+
+# Virtual Environment
+venv/
+env/
+ENV/
+>>>>>>> 04627b963babc5ecf9f1ddb34bf0f7bd3421bfff
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+<<<<<<< HEAD
 *~
+=======
+>>>>>>> 04627b963babc5ecf9f1ddb34bf0f7bd3421bfff
 
 # OS
 .DS_Store
@@ -63,6 +83,7 @@ Thumbs.db
 
 # Logs
 *.log
+<<<<<<< HEAD
 
 # Database
 *.db
@@ -79,3 +100,15 @@ static/uploads/*
 # Local development
 instance/
 data/
+=======
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local development
+.env
+.env.local
+>>>>>>> 04627b963babc5ecf9f1ddb34bf0f7bd3421bfff
