@@ -12,8 +12,19 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'schulbuddy-secret-key'
     DEBUG = True
     
+    # Server Configuration
+    HOST = os.environ.get('HOST', '0.0.0.0')
+    PORT = int(os.environ.get('PORT', '5000'))
+    
     # SQLite Database
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///schulbuddy.db'
+    # Verwende absoluten Pfad für Docker Volume
+    if os.environ.get('DOCKER_ENV'):
+        # Im Docker-Container: verwende /app/data Volume
+        default_db_path = 'sqlite:////app/data/schulbuddy.db'
+    else:
+        # Lokal: verwende instance-Verzeichnis
+        default_db_path = 'sqlite:///instance/schulbuddy.db'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or default_db_path
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Session-Konfiguration

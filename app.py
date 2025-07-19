@@ -54,7 +54,8 @@ def main():
     
     # Entwicklungsserver starten
     if __name__ == '__main__':
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        from config import Config
+        app.run(debug=True, host=Config.HOST, port=Config.PORT)
     
     return app
 
