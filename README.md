@@ -1,10 +1,5 @@
 # SchulBuddy Docker Setup
 
-[![Docker CI/CD](https://github.com/TimBoBN/schulbuddy/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/TimBoBN/schulbuddy/actions/workflows/ci-cd.yml)
-[![Docker Image](https://ghcr-badge.egpl.dev/timbobn/schulbuddy/latest_tag?color=%2344cc11&ignore=latest&label=Docker&trim=)](https://github.com/TimBoBN/schulbuddy/pkgs/container/schulbuddy)
-[![GitHub release](https://img.shields.io/github/v/release/TimBoBN/schulbuddy?color=brightgreen)](https://github.com/TimBoBN/schulbuddy/releases)
-[![License](https://img.shields.io/github/license/TimBoBN/schulbuddy)](LICENSE)
-
 **SchulBuddy** - Eine Flask-Anwendung für die Verwaltung von Schulaufgaben, Noten und Lernfortschritt.
 
 Dieses Repository enthält sowohl die **Python-Anwendung** als auch vollständige **Docker-Containerisierung** mit CI/CD-Pipeline.
