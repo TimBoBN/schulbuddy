@@ -50,6 +50,11 @@ jobs:
   docker-build:
     needs: python-test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
     outputs:
       image-digest: ${{ steps.build.outputs.digest }}
     
@@ -208,6 +213,11 @@ jobs:
     needs: [docker-build, docker-test]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
     
     steps:
     - name: Checkout repository
