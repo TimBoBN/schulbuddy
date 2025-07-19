@@ -402,12 +402,12 @@ def archive():
             
             for task in old_tasks:
                 # Datei löschen, falls vorhanden
-                if task.filename:
+                if task.file:
                     try:
-                        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], task.filename)
+                        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], task.file)
                         if os.path.exists(file_path):
                             os.remove(file_path)
-                            deleted_files.append(task.filename)
+                            deleted_files.append(task.file)
                     except:
                         pass  # Ignoriere Datei-Fehler
                 
@@ -418,12 +418,11 @@ def archive():
             if deleted_count > 0:
                 log_entry = ActivityLog(
                     user_id=current_user.id,
-                    action=f"Automatische Bereinigung: {deleted_count} Aufgaben älter als 14 Tage gelöscht",
-                    details=f"Speicher gespart: {len(deleted_files)} Dateien entfernt"
+                    activity_type="auto_cleanup",
+                    activity_data=f"Automatische Bereinigung: {deleted_count} Aufgaben gelöscht, {len(deleted_files)} Dateien entfernt"
                 )
                 db.session.add(log_entry)
                 db.session.commit()
-                
                 flash(f"Automatische Bereinigung: {deleted_count} alte Aufgaben wurden gelöscht (Speicher gespart).", "success")
     except Exception as e:
         db.session.rollback()
@@ -487,8 +486,8 @@ def delete_archived_task(task_id):
             UserStatistic.update_daily_stats(current_user.id, date_obj)
         
         # Datei löschen, falls vorhanden
-        if task.filename:
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], task.filename)
+        if task.file:
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], task.file)
             if os.path.exists(file_path):
                 os.remove(file_path)
         
@@ -499,8 +498,8 @@ def delete_archived_task(task_id):
         # Aktivitätslog
         log_entry = ActivityLog(
             user_id=current_user.id,
-            action=f"Archivierte Aufgabe '{task.title}' permanent gelöscht",
-            details=f"Fach: {task.subject}, Typ: {task.task_type}"
+            activity_type="delete_archived_task",
+            activity_data=f"Archivierte Aufgabe '{task.title}' permanent gelöscht | Fach: {task.subject}, Typ: {task.task_type}"
         )
         db.session.add(log_entry)
         db.session.commit()
@@ -549,12 +548,12 @@ def auto_cleanup_old_tasks():
         
         for task in old_tasks:
             # Datei löschen, falls vorhanden
-            if task.filename:
-                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], task.filename)
+            if task.file:
+                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], task.file)
                 if os.path.exists(file_path):
                     try:
                         os.remove(file_path)
-                        deleted_files.append(task.filename)
+                        deleted_files.append(task.file)
                     except:
                         pass  # Ignoriere Datei-Fehler
             
@@ -562,8 +561,8 @@ def auto_cleanup_old_tasks():
             if task.user_id:
                 log_entry = ActivityLog(
                     user_id=task.user_id,
-                    action=f"Automatische Löschung: '{task.title}' nach 14 Tagen entfernt",
-                    details=f"Fach: {task.subject}, Typ: {task.task_type}"
+                    activity_type="auto_cleanup_task",
+                    activity_data=f"Automatische Löschung: '{task.title}' nach 14 Tagen entfernt | Fach: {task.subject}, Typ: {task.task_type}"
                 )
                 db.session.add(log_entry)
             
