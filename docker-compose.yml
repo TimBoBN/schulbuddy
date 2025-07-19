@@ -19,8 +19,8 @@ services:
       - CURRENT_SCHOOL_YEAR=2024/25
       - CURRENT_SEMESTER=1
     volumes:
-      - schulbuddy_data:/app/data
-      - schulbuddy_uploads:/app/static/uploads
+      - ./instance:/app/data
+      - ./static/uploads:/app/static/uploads
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${PORT:-5000}/health"]

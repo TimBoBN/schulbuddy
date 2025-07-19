@@ -60,7 +60,6 @@ venv.bak/
 Thumbs.db
 
 # Application specific
-instance/
 *.db
 *.sqlite
 *.sqlite3
@@ -156,3 +155,9 @@ static/uploads/
 
 # Docker build artifacts (entrypoint.sh is copied from scripts/ for Docker)
 /entrypoint.sh
+
+# Development files
+dev/
+debug_*.py
+test_*.py
+temp_*.py
