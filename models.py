@@ -59,6 +59,22 @@ class User(UserMixin, db.Model):
         """Prüfe Passwort"""
         return check_password_hash(self.password_hash, password)
     
+    @staticmethod
+    def find_by_username(username):
+        """Finde Benutzer mit case-insensitive und whitespace-toleranter Suche"""
+        if not username:
+            return None
+        
+        # Normalisiere den Input-Username
+        normalized_input = username.strip().lower()
+        
+        # Suche case-insensitive durch alle User
+        users = User.query.all()
+        for user in users:
+            if user.username.strip().lower() == normalized_input:
+                return user
+        return None
+    
     def generate_totp_secret(self):
         """Generiere TOTP Secret für 2FA"""
         if not self.totp_secret:
@@ -121,8 +137,9 @@ class User(UserMixin, db.Model):
         new_level = (self.total_points // 100) + 1
         if new_level > self.level:
             self.level = new_level
-            # Achievement für Level-up
-            self.check_achievements()
+        
+        # Streak aktualisieren (wichtig für Achievements)
+        self.update_streak()
         
         # Aktivität loggen
         log = ActivityLog(
@@ -132,6 +149,10 @@ class User(UserMixin, db.Model):
             points_earned=points
         )
         db.session.add(log)
+        
+        # Achievements prüfen (nach jeder Punktevergabe)
+        self.check_achievements()
+        
         db.session.commit()
     
     def update_streak(self):
@@ -157,8 +178,8 @@ class User(UserMixin, db.Model):
         if self.current_streak > self.longest_streak:
             self.longest_streak = self.current_streak
         
+        # Nur commit, nicht erneut achievements prüfen (wird von add_points gemacht)
         db.session.commit()
-        self.check_achievements()
     
     def check_achievements(self):
         """Prüfe und verleihe Achievements"""
@@ -180,16 +201,80 @@ class User(UserMixin, db.Model):
             elif achievement.condition_type == 'tasks_completed':
                 completed_tasks = Task.query.filter_by(user_id=self.id, completed=True).count()
                 earned = completed_tasks >= achievement.condition_value
+            elif achievement.condition_type == 'study_sessions':
+                study_sessions = StudySession.query.filter_by(user_id=self.id, completed=True).count()
+                earned = study_sessions >= achievement.condition_value
+            elif achievement.condition_type == 'study_time':
+                total_study_time = db.session.query(db.func.sum(StudySession.actual_duration_seconds)).filter_by(
+                    user_id=self.id, completed=True).scalar() or 0
+                total_minutes = total_study_time // 60
+                earned = total_minutes >= achievement.condition_value
+            elif achievement.condition_type == 'grades_added':
+                grades_count = Grade.query.filter_by(user_id=self.id).count()
+                earned = grades_count >= achievement.condition_value
+            elif achievement.condition_type == 'grade_average':
+                grades = Grade.query.filter_by(user_id=self.id).all()
+                if grades:
+                    avg = sum(g.grade for g in grades) / len(grades)
+                    # condition_value ist in Zehntel (20 = 2.0, 15 = 1.5, 10 = 1.0)
+                    earned = (avg * 10) <= achievement.condition_value
+            elif achievement.condition_type == 'early_completion':
+                early_tasks = Task.query.filter(
+                    Task.user_id == self.id,
+                    Task.completed == True,
+                    Task.completed_date < Task.due_date
+                ).count()
+                earned = early_tasks >= achievement.condition_value
+            elif achievement.condition_type == 'subject_diversity':
+                subjects = db.session.query(Task.subject).filter_by(
+                    user_id=self.id, completed=True).distinct().count()
+                earned = subjects >= achievement.condition_value
+            elif achievement.condition_type == 'night_owl':
+                # Aufgaben nach 20 Uhr erledigt
+                from sqlalchemy import extract
+                night_tasks = Task.query.filter(
+                    Task.user_id == self.id,
+                    Task.completed == True,
+                    extract('hour', Task.completed_date) >= 20
+                ).count()
+                earned = night_tasks >= achievement.condition_value
+            elif achievement.condition_type == 'weekend_warrior':
+                # Aufgaben am Wochenende erledigt (Samstag=5, Sonntag=6)
+                from sqlalchemy import extract
+                weekend_tasks = Task.query.filter(
+                    Task.user_id == self.id,
+                    Task.completed == True,
+                    extract('dow', Task.completed_date).in_([0, 6])  # Sonntag=0, Samstag=6
+                ).count()
+                earned = weekend_tasks >= achievement.condition_value
+            elif achievement.condition_type == 'marathon_session':
+                # Längste Session in Minuten
+                longest_session = db.session.query(db.func.max(StudySession.actual_duration_seconds)).filter_by(
+                    user_id=self.id, completed=True).scalar() or 0
+                longest_minutes = longest_session // 60
+                earned = longest_minutes >= achievement.condition_value
+            elif achievement.condition_type == 'weekly_active':
+                # Jeden Tag der Woche aktiv (letzte 7 Tage)
+                from datetime import datetime, timedelta
+                week_ago = datetime.now() - timedelta(days=7)
+                active_days = db.session.query(db.func.date(ActivityLog.created_at)).filter(
+                    ActivityLog.user_id == self.id,
+                    ActivityLog.created_at >= week_ago
+                ).distinct().count()
+                earned = active_days >= achievement.condition_value
             
             if earned:
                 user_achievement = UserAchievement(user_id=self.id, achievement_id=achievement.id)
                 db.session.add(user_achievement)
                 
+                # Punkte für Achievement vergeben
+                self.total_points += achievement.points
+                
                 # Benachrichtigung erstellen
                 notification = Notification(
                     user_id=self.id,
                     title=f"Achievement erhalten: {achievement.name}",
-                    message=f"Glückwunsch! Du hast das Achievement '{achievement.name}' erhalten: {achievement.description}",
+                    message=f"Glückwunsch! Du hast das Achievement '{achievement.name}' erhalten: {achievement.description} (+{achievement.points} Punkte)",
                     notification_type='achievement'
                 )
                 db.session.add(notification)
@@ -448,6 +533,45 @@ def init_achievements():
                 Achievement(name="Aufgabenprofi", description="25 Aufgaben erledigt", icon="📝", points=75, condition_type="tasks_completed", condition_value=25),
                 Achievement(name="Aufgabenheld", description="50 Aufgaben erledigt", icon="💪", points=150, condition_type="tasks_completed", condition_value=50),
                 Achievement(name="Aufgabengott", description="100 Aufgaben erledigt", icon="⭐", points=300, condition_type="tasks_completed", condition_value=100),
+                Achievement(name="Taskmaster", description="250 Aufgaben erledigt", icon="🎯", points=500, condition_type="tasks_completed", condition_value=250),
+                Achievement(name="Ultimativer Planer", description="500 Aufgaben erledigt", icon="🏆", points=1000, condition_type="tasks_completed", condition_value=500),
+                
+                # Study Session Achievements
+                Achievement(name="Erste Lernsession", description="Erste Timer-Session abgeschlossen", icon="⏰", points=10, condition_type="study_sessions", condition_value=1),
+                Achievement(name="Konzentriert", description="10 Lernsessions abgeschlossen", icon="🧘", points=30, condition_type="study_sessions", condition_value=10),
+                Achievement(name="Studierfuchs", description="25 Lernsessions abgeschlossen", icon="📚", points=75, condition_type="study_sessions", condition_value=25),
+                Achievement(name="Lernprofi", description="50 Lernsessions abgeschlossen", icon="🎓", points=150, condition_type="study_sessions", condition_value=50),
+                Achievement(name="Lernguru", description="100 Lernsessions abgeschlossen", icon="🧠", points=300, condition_type="study_sessions", condition_value=100),
+                Achievement(name="Meditationsmeister", description="200 Lernsessions abgeschlossen", icon="🧘‍♂️", points=500, condition_type="study_sessions", condition_value=200),
+                
+                # Study Time Achievements (in Minuten)
+                Achievement(name="Erste Stunde", description="60 Minuten gelernt", icon="⏱️", points=20, condition_type="study_time", condition_value=60),
+                Achievement(name="Ausdauernd", description="5 Stunden gelernt", icon="💪", points=50, condition_type="study_time", condition_value=300),
+                Achievement(name="Studienmarathon", description="10 Stunden gelernt", icon="🏃", points=100, condition_type="study_time", condition_value=600),
+                Achievement(name="Lerntitan", description="24 Stunden gelernt", icon="⚡", points=200, condition_type="study_time", condition_value=1440),
+                Achievement(name="Wissensdurst", description="50 Stunden gelernt", icon="🌟", points=400, condition_type="study_time", condition_value=3000),
+                Achievement(name="Lernlegende", description="100 Stunden gelernt", icon="👑", points=800, condition_type="study_time", condition_value=6000),
+                
+                # Grade Achievements
+                Achievement(name="Erste Note", description="Erste Note eingetragen", icon="📊", points=10, condition_type="grades_added", condition_value=1),
+                Achievement(name="Fleißbiene", description="10 Noten eingetragen", icon="🐝", points=30, condition_type="grades_added", condition_value=10),
+                Achievement(name="Notenbuch", description="25 Noten eingetragen", icon="📖", points=75, condition_type="grades_added", condition_value=25),
+                Achievement(name="Notensammler", description="50 Noten eingetragen", icon="📈", points=150, condition_type="grades_added", condition_value=50),
+                Achievement(name="Streber", description="Durchschnitt 2.0 oder besser", icon="🤓", points=200, condition_type="grade_average", condition_value=20),
+                Achievement(name="Musterschüler", description="Durchschnitt 1.5 oder besser", icon="🌟", points=400, condition_type="grade_average", condition_value=15),
+                Achievement(name="Klassenbester", description="Durchschnitt 1.0 oder besser", icon="🏆", points=800, condition_type="grade_average", condition_value=10),
+                
+                # Special Achievements
+                Achievement(name="Früher Vogel", description="10 Aufgaben vor der Deadline erledigt", icon="🐦", points=100, condition_type="early_completion", condition_value=10),
+                Achievement(name="Organisationstalent", description="25 Aufgaben vor der Deadline erledigt", icon="📅", points=200, condition_type="early_completion", condition_value=25),
+                Achievement(name="Perfektionist", description="50 Aufgaben vor der Deadline erledigt", icon="✨", points=400, condition_type="early_completion", condition_value=50),
+                Achievement(name="Vielfältig", description="Aufgaben in 5 verschiedenen Fächern erledigt", icon="🎨", points=150, condition_type="subject_diversity", condition_value=5),
+                Achievement(name="Allrounder", description="Aufgaben in 10 verschiedenen Fächern erledigt", icon="🌈", points=300, condition_type="subject_diversity", condition_value=10),
+                Achievement(name="Nachtaktiv", description="10 Aufgaben nach 20 Uhr erledigt", icon="🌙", points=100, condition_type="night_owl", condition_value=10),
+                Achievement(name="Wochenendkrieger", description="20 Aufgaben am Wochenende erledigt", icon="🗡️", points=150, condition_type="weekend_warrior", condition_value=20),
+                Achievement(name="Schnellschreiber", description="Aufgabe in unter 5 Minuten erstellt und erledigt", icon="⚡", points=50, condition_type="speed_demon", condition_value=1),
+                Achievement(name="Marathonläufer", description="6 Stunden ununterbrochen gelernt", icon="🏃‍♂️", points=300, condition_type="marathon_session", condition_value=360),
+                Achievement(name="Consistency King", description="Jeden Tag der Woche aktiv", icon="👑", points=250, condition_type="weekly_active", condition_value=7),
             ]
             
             for achievement in achievements:

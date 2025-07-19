@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Backup-Verwaltung - Admin - SchulBuddy{% endblock %}
+
+{% block extra_css %}
+<style>
+    .backup-card {
+        transition: transform 0.2s;
+    }
+    .backup-card:hover {
+        transform: translateY(-2px);
+    }
+    .backup-icon {
+        font-size: 3rem;
+        color: #007bff;
+    }
+    .backup-actions .btn {
+        margin: 0 2px;
+    }
+    .backup-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .backup-size {
+        font-weight: bold;
+        color: #28a745;
+    }
+    .backup-date {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% include "admin_nav.html" %}
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-database me-2"></i>Backup-Verwaltung</h2>
+                    <p class="mb-0 text-muted">Erstelle und verwalte Datenbank-Backups</p>
+                </div>
+                <div class="card-body">
+                    <!-- Backup erstellen -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-plus-circle backup-icon text-primary mb-3"></i>
+                                    <h5>Vollständiges Backup</h5>
+                                    <p class="text-muted">Erstelle ein ZIP-Archiv mit allen Daten und Dateien</p>
+                                    <form method="post" action="{{ url_for('admin.create_backup') }}" class="d-inline">
+                                        <button type="submit" class="btn btn-primary btn-lg">
+                                            <i class="fas fa-download me-2"></i>Backup erstellen
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-info">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-file-export backup-icon text-info mb-3"></i>
+                                    <h5>JSON-Export</h5>
+                                    <p class="text-muted">Exportiere nur die Datenbank als JSON-Datei</p>
+                                    <a href="{{ url_for('admin.export_json') }}" class="btn btn-info btn-lg">
+                                        <i class="fas fa-file-code me-2"></i>JSON exportieren
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Warnung -->
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Wichtiger Hinweis:</strong> Backups enthalten sensible Daten. Bewahre sie sicher auf und teile sie nicht mit Unbefugten.
+                    </div>
+                    
+                    <!-- Vorhandene Backups -->
+                    <h4 class="mb-3">
+                        <i class="fas fa-archive me-2"></i>Vorhandene Backups 
+                        <span class="badge bg-secondary">{{ backups|length }}</span>
+                    </h4>
+                    
+                    {% if backups %}
+                        <div class="row">
+                            {% for backup in backups %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card backup-card h-100">
+                                    <div class="card-body">
+                                        <div class="backup-info">
+                                            <div>
+                                                <i class="fas fa-file-archive text-primary me-2"></i>
+                                                <strong>{{ backup.filename }}</strong>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="backup-info">
+                                            <span class="backup-size">{{ backup.size }} MB</span>
+                                            <span class="backup-date">{{ backup.created }}</span>
+                                        </div>
+                                        
+                                        <div class="backup-actions">
+                                            <a href="{{ url_for('admin.download_backup', filename=backup.filename) }}" 
+                                               class="btn btn-success btn-sm">
+                                                <i class="fas fa-download me-1"></i>Download
+                                            </a>
+                                            
+                                            <button type="button" 
+                                                    class="btn btn-danger btn-sm" 
+                                                    onclick="deleteBackup('{{ backup.filename }}')">
+                                                <i class="fas fa-trash me-1"></i>Löschen
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-folder-open" style="font-size: 4rem; color: #dee2e6;"></i>
+                            <h5 class="mt-3 text-muted">Keine Backups vorhanden</h5>
+                            <p class="text-muted">Erstelle dein erstes Backup über die Schaltflächen oben.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Backup löschen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Möchtest du das Backup <strong id="deleteFileName"></strong> wirklich löschen?</p>
+                <p class="text-muted">Diese Aktion kann nicht rückgängig gemacht werden.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <form method="post" id="deleteForm" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Löschen
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function deleteBackup(filename) {
+    document.getElementById('deleteFileName').textContent = filename;
+    document.getElementById('deleteForm').action = '/admin/backup/delete/' + filename;
+    
+    var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+}
+
+// Loading-Animation für Backup-Erstellung
+document.querySelector('form[action="{{ url_for("admin.create_backup") }}"]').addEventListener('submit', function(e) {
+    const btn = this.querySelector('button[type="submit"]');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Erstelle Backup...';
+    btn.disabled = true;
+});
+</script>
+{% endblock %}
