@@ -18,37 +18,10 @@ def create_app():
     # Ensure instance directory exists
     instance_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance")
     os.makedirs(instance_dir, exist_ok=True)
-    
-    # Create database file if it doesn't exist
-    db_path = app.config.get('DATABASE_PATH', os.path.join(instance_dir, "schulbuddy.db"))
-    if not os.path.exists(db_path):
-        import sqlite3
-        conn = sqlite3.connect(db_path)
-        conn.close()
-        print(f"Created database file: {db_path}")
-    
-    # Initialize database
-    db.init_app(app)
-    
-    # Create database tables
+
+    # Datenbank initialisieren
     with app.app_context():
-        try:
-            db.create_all()
-            print("Database tables created successfully!")
-            
-            # Create admin user if not exists
-            from models import User
-            if not User.query.filter_by(id=1).first():
-                admin = User(
-                    username="admin", email="admin@schulbuddy.local", is_admin=True
-                )
-                admin.set_password("admin")
-                db.session.add(admin)
-                db.session.commit()
-                print("Admin user created!")
-        except Exception as e:
-            print(f"Database initialization error: {e}")
-            raise
+        init_db(app)
     
     # Login Manager konfigurieren
     login_manager = LoginManager()
@@ -76,6 +49,26 @@ def create_app():
         with app.app_context():
             deleted_count = auto_cleanup_old_tasks()
             print(f"Bereinigung abgeschlossen: {deleted_count} Aufgaben gelöscht")
+    
+    @app.cli.command()
+    def cleanup_old_sessions():
+        """CLI-Kommando zum Bereinigen alter Timer-Sessions"""
+        from routes.timer import auto_cleanup_old_sessions
+        with app.app_context():
+            deleted_count = auto_cleanup_old_sessions()
+            print(f"Timer-Sessions Bereinigung abgeschlossen: {deleted_count} Sessions gelöscht")
+    
+    @app.cli.command()
+    def cleanup_all():
+        """CLI-Kommando zum Bereinigen aller alten Daten"""
+        from routes.tasks import auto_cleanup_old_tasks
+        from routes.timer import auto_cleanup_old_sessions
+        with app.app_context():
+            tasks_deleted = auto_cleanup_old_tasks()
+            sessions_deleted = auto_cleanup_old_sessions()
+            print(f"Vollständige Bereinigung abgeschlossen:")
+            print(f"- {tasks_deleted} Aufgaben gelöscht")
+            print(f"- {sessions_deleted} Timer-Sessions gelöscht")
     
     return app
 
