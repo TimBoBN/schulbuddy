@@ -118,16 +118,32 @@ jobs:
           -e FLASK_ENV=production \
           schulbuddy:test
         
-        # Warte auf Start
-        sleep 30
+        # Warte auf Start und zeige Logs
+        sleep 10
+        echo "📋 Container logs:"
+        docker logs schulbuddy-test
+        
+        # Warte noch etwas mehr
+        sleep 20
         
         # Health-Check mit Retry-Logic
+        echo "🔍 Testing basic connectivity first..."
+        for i in {1..5}; do
+          if curl -f http://localhost:5000/ping; then
+            echo "✅ Basic ping test passed"
+            break
+          fi
+          echo "⏳ Ping attempt $i failed, retrying..."
+          sleep 3
+        done
+        
+        echo "🏥 Testing health endpoint..."
         for i in {1..10}; do
           if curl -f http://localhost:5000/health; then
             echo "✅ Health check passed"
             break
           fi
-          echo "⏳ Attempt $i failed, retrying..."
+          echo "⏳ Health check attempt $i failed, retrying..."
           sleep 5
         done
         
