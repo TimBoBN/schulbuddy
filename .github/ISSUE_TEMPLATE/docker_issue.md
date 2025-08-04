@@ -1,9 +1,10 @@
 ---
-name: 🐳 Docker/Deployment Issue
+name: "\U0001F433 Docker/Deployment Issue"
 about: Melde Probleme mit Docker-Images, Container oder Deployment
 title: "[DOCKER] "
-labels: docker, deployment
-assignees: ''
+labels: bug
+assignees: TimBoBN
+
 ---
 
 ## 🐳 Problembeschreibung

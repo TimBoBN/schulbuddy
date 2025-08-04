@@ -1,9 +1,10 @@
 ---
-name: 🐛 Bug Report
+name: "\U0001F41B Bug Report"
 about: Melde einen Fehler in SchulBuddy
 title: "[BUG] "
-labels: bug
-assignees: ''
+labels: bug, enhancement
+assignees: TimBoBN
+
 ---
 
 ## 🐛 Fehlerbeschreibung
