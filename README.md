@@ -307,7 +307,7 @@ curl http://localhost:5000/health
 
 Das Image enthält eingebaute Health-Checks, die automatisch den Status der Anwendung überwachen und bei Problemen Neustarts auslösen können.
 
-## � Updates und Versionen
+## 🔄 Updates und Versionen
 
 ### Versionshistorie
 
@@ -327,7 +327,7 @@ docker-compose up -d
 TAG=v1.3.0 docker-compose up -d
 ```
 
-## �📝 Lizenz
+## 📝 Lizenz
 
 Dieses Projekt steht unter der MIT-Lizenz - siehe [LICENSE](LICENSE) für Details.
 
