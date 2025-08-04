@@ -1,7 +1,7 @@
 services:
   schulbuddy:
     # Docker Hub Image
-    image: timbobn/schulbuddy:${TAG:-latest}
+    image: docker.io/timbobn/schulbuddy:${TAG:-latest}
     # Für GitHub Container Registry (GHCR), kommentiere die obere Zeile aus und verwende stattdessen:
     # image: ghcr.io/timbobn/schulbuddy:${TAG:-latest}
     container_name: schulbuddy-app
@@ -32,21 +32,6 @@ services:
       retries: 3
       start_period: 40s
 
-  # Optional: nginx reverse proxy
-  nginx:
-    image: nginx:alpine
-    container_name: schulbuddy-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - schulbuddy
-    restart: unless-stopped
-    profiles:
-      - nginx
 
 volumes:
   schulbuddy_data:
@@ -54,6 +39,3 @@ volumes:
   schulbuddy_uploads:
     driver: local
 
-networks:
-  default:
-    name: schulbuddy-network
