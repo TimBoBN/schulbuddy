@@ -22,7 +22,7 @@ echo "🏷️ Using tag: $TAG"
 echo "🧩 Setting up QEMU for cross-platform emulation..."
 docker run --privileged --rm tonistiigi/binfmt --install all
 
-# Build mit verbessertem Caching
+# Build mit verbessertem Caching und BuildKit-Optionen
 echo "🔄 Building multi-architecture images for $PLATFORMS..."
 docker buildx build \
   --platform=$PLATFORMS \
@@ -30,6 +30,7 @@ docker buildx build \
   --tag "ghcr.io/timbobn/schulbuddy:$TAG" \
   --progress=plain \
   --push \
+  --build-arg BUILDKIT_INLINE_CACHE=1 \
   --cache-from=type=registry,ref=timbobn/schulbuddy:buildcache \
   --cache-to=type=registry,ref=timbobn/schulbuddy:buildcache,mode=max \
   .

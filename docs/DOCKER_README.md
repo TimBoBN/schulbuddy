@@ -78,10 +78,11 @@ Für optimale Performance auf ARM-Geräten empfehlen wir:
    - Lösung: Verwende einen aktualisierten Docker-Client (20.10.0+)
    - Überprüfe mit `docker version`, dass Client und Server aktuell sind
    
-2. **BuildX-Fehler mit pip install**
-   - Problem: `ERROR: failed to build: failed to solve: process "/dev/.buildkit_qemu_emulator /bin/sh -c pip install..." did not complete successfully`
-   - Lösung: Wir haben spezielle ARM-Optimierungen im Dockerfile implementiert
+2. **BuildX-Fehler mit apt-get oder pip install**
+   - Problem: `ERROR: failed to build: failed to solve: process "/dev/.buildkit_qemu_emulator /bin/sh -c ..."` 
+   - Lösung: Wir haben das Dockerfile optimiert, um BuildKit-ARGs wie BUILDPLATFORM und TARGETPLATFORM zu nutzen
    - Bei lokalen Builds: Stelle sicher, dass du den neuesten QEMU verwendest (`docker run --privileged --rm tonistiigi/binfmt --install all`)
+   - Wenn der Fehler weiterhin auftritt, versuche `docker buildx prune` um den Build-Cache zu leeren
 
 2. **Performance-Probleme auf ARM**
    - Einige Python-Pakete benötigen mehr Ressourcen auf ARM

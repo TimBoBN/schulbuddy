@@ -1,10 +1,15 @@
-# SchulBuddy Dockerfile - Multi-stage build für optimale Performance
-FROM python:3.11-slim as builder
+# SchulBuddy Dockerfile - Multi-stage build für Multi-Architektur-Support
+ARG PYTHON_VERSION=3.11
+FROM --platform=$BUILDPLATFORM python:${PYTHON_VERSION}-slim as builder
 
 # GitHub-spezifische Labels
 LABEL org.opencontainers.image.source=https://github.com/TimBoBN/schulbuddy
 LABEL org.opencontainers.image.description="SchulBuddy - Eine Anwendung zur Schulnotenerfassung und -verwaltung"
 LABEL org.opencontainers.image.licenses=MIT
+
+# Plattform-ARGs verfügbar machen
+ARG BUILDPLATFORM
+ARG TARGETPLATFORM
 
 # Arbeitsverzeichnis setzen
 WORKDIR /app
@@ -17,46 +22,45 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Requirements kopieren
-COPY requirements.txt requirements-arm.txt ./
+COPY requirements.txt ./
+COPY requirements-arm.txt ./
 
-# Unterschiedliche Installation je nach Architektur
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    # ARM-spezifische Optimierungen
-    if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "armv7l" ]; then \
+# Unterschiedliche Installation je nach Ziel-Architektur
+RUN echo "Building for $TARGETPLATFORM on $BUILDPLATFORM" && \
+    pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    if [ "$TARGETPLATFORM" = "linux/arm64" ] || [ "$TARGETPLATFORM" = "linux/arm/v7" ]; then \
         apt-get update && \
         apt-get install -y --no-install-recommends \
             libblas-dev \
             liblapack-dev \
             libatlas-base-dev \
-            libopenblas-dev \
             gfortran \
-            && rm -rf /var/lib/apt/lists/* \
-            # Verwende die ARM-optimierten Requirements
             && pip install --no-cache-dir -r requirements-arm.txt; \
     else \
         pip install --no-cache-dir -r requirements.txt; \
     fi
 
 # Production Stage
-FROM python:3.11-slim
+FROM --platform=$TARGETPLATFORM python:${PYTHON_VERSION}-slim
+
+# ARGs für Multi-Platform-Build
+ARG TARGETPLATFORM
 
 # Arbeitsverzeichnis setzen
 WORKDIR /app
 
-# System-Dependencies installieren (für eventuelle native Extensions)
-RUN apt-get update && apt-get install -y \
-    curl \
-    # ARM-spezifische Optimierungen und Runtime-Dependencies
-    && if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "armv7l" ]; then \
-       apt-get install -y --no-install-recommends \
-         libatlas-base-dev \
-         libopenblas-base; \
-    fi \
-    && rm -rf /var/lib/apt/lists/*
+# System-Dependencies installieren
+RUN apt-get update && apt-get install -y curl && \
+    if [ "$TARGETPLATFORM" = "linux/arm64" ] || [ "$TARGETPLATFORM" = "linux/arm/v7" ]; then \
+        apt-get install -y --no-install-recommends \
+            libatlas-base-dev \
+            libopenblas-base; \
+    fi && \
+    rm -rf /var/lib/apt/lists/*
 
-# Python packages von builder stage kopieren (Site-packages)
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# Python packages vom builder stage kopieren
+COPY --from=builder /usr/local/lib/python${PYTHON_VERSION}/site-packages/ /usr/local/lib/python${PYTHON_VERSION}/site-packages/
+COPY --from=builder /usr/local/bin/ /usr/local/bin/
 
 # Stellen sicher, dass pip und setuptools auch in der finalen Phase aktualisiert sind
 RUN pip install --no-cache-dir --upgrade pip setuptools
@@ -89,7 +93,8 @@ if [ ! -f "/app/data/schulbuddy.db" ]; then\n\
 fi\n\
 \n\
 # App starten mit angepasster Worker-Anzahl je nach Architektur\n\
-if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "armv7l" ]; then\n\
+ARCH=$(uname -m)\n\
+if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "armv7l" ]; then\n\
     # ARM-Architektur: weniger Worker\n\
     echo "🎓 Starting SchulBuddy with Gunicorn on ARM architecture (port $PORT)..."\n\
     export GUNICORN_WORKERS=2\n\

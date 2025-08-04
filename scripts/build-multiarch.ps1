@@ -25,6 +25,7 @@ docker buildx build `
   --tag "ghcr.io/timbobn/schulbuddy:$TAG" `
   --progress=plain `
   --push `
+  --build-arg BUILDKIT_INLINE_CACHE=1 `
   --cache-from=type=registry,ref=timbobn/schulbuddy:buildcache `
   --cache-to=type=registry,ref=timbobn/schulbuddy:buildcache,mode=max `
   .
