@@ -261,6 +261,8 @@ Die Workflows sind so konfiguriert, dass:
 - **Rate Limiting**: Schutz vor Brute-Force-Angriffen
 - **CSRF-Schutz**: Integrierter Schutz gegen Cross-Site Request Forgery
 - **Regelmäßige Sicherheitsupdates**: Automatische CVE-Überwachung und Abhängigkeits-Updates
+- **Container-Sicherheit**: Least-Privilege-Prinzip, non-root User, minimierte Angriffsfläche
+- **Schwachstellenmanagement**: Dokumentierte Risikobewertung für nicht-fixbare CVEs in [SECURITY.md](SECURITY.md)
 
 ## 🚀 Deployment
 

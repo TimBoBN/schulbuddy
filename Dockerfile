@@ -77,10 +77,23 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
-# Non-root user erstellen (wichtig für Sicherheit)
-RUN adduser --disabled-password --gecos '' appuser && \
+# Security hardening
+# Setze Dateiberechtigungen und reduziere Angriffsfläche
+RUN chmod -R 755 /app && \
+    chmod 700 /app/entrypoint.sh && \
+    # Read-only permissions für Code-Dateien
+    find /app -type f -not -path "*/\.*" -not -path "*/data/*" -not -path "*/static/uploads/*" -exec chmod 644 {} \; && \
+    # Entferne unnötige Tools und Dateien
+    rm -rf /tmp/* /var/tmp/* /var/cache/* /var/log/* && \
+    # Non-root user mit minimalen Berechtigungen erstellen
+    adduser --disabled-password --gecos '' appuser && \
     chown -R appuser:appuser /app
+
+# Setze niedrige Berechtigungen für den Container
 USER appuser
+
+# Definiere Volumes explizit als solche für bessere Transparenz
+VOLUME ["/app/data", "/app/static/uploads"]
 
 # Startkommando
 CMD ["./entrypoint.sh"]
