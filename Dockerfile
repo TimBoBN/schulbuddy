@@ -11,7 +11,8 @@ WORKDIR /app
 
 # Requirements kopieren und installieren
 COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --user --no-cache-dir --upgrade pip setuptools && \
+    pip install --user --no-cache-dir -r requirements.txt
 
 # Production Stage
 FROM python:3.11-slim
