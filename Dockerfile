@@ -1,12 +1,18 @@
 # SchulBuddy Dockerfile - Multi-stage build für optimale Performance
 FROM python:3.11-slim as builder
 
+# GitHub-spezifische Labels
+LABEL org.opencontainers.image.source=https://github.com/TimBoBN/schulbuddy
+LABEL org.opencontainers.image.description="SchulBuddy - Eine Anwendung zur Schulnotenerfassung und -verwaltung"
+LABEL org.opencontainers.image.licenses=MIT
+
 # Arbeitsverzeichnis setzen
 WORKDIR /app
 
 # Requirements kopieren und installieren
 COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --user --no-cache-dir --upgrade pip setuptools && \
+    pip install --user --no-cache-dir -r requirements.txt
 
 # Production Stage
 FROM python:3.11-slim
@@ -22,6 +28,9 @@ RUN apt-get update && apt-get install -y \
 
 # Python packages von builder stage kopieren
 COPY --from=builder /root/.local /usr/local
+
+# Stellen sicher, dass pip und setuptools auch in der finalen Phase aktualisiert sind
+RUN pip install --no-cache-dir --upgrade pip setuptools
 
 # App-Code kopieren
 COPY . .
@@ -68,10 +77,23 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
-# Non-root user erstellen (wichtig für Sicherheit)
-RUN adduser --disabled-password --gecos '' appuser && \
+# Security hardening
+# Setze Dateiberechtigungen und reduziere Angriffsfläche
+RUN chmod -R 755 /app && \
+    chmod 700 /app/entrypoint.sh && \
+    # Read-only permissions für Code-Dateien
+    find /app -type f -not -path "*/\.*" -not -path "*/data/*" -not -path "*/static/uploads/*" -exec chmod 644 {} \; && \
+    # Entferne unnötige Tools und Dateien
+    rm -rf /tmp/* /var/tmp/* /var/cache/* /var/log/* && \
+    # Non-root user mit minimalen Berechtigungen erstellen
+    adduser --disabled-password --gecos '' appuser && \
     chown -R appuser:appuser /app
+
+# Setze niedrige Berechtigungen für den Container
 USER appuser
+
+# Definiere Volumes explizit als solche für bessere Transparenz
+VOLUME ["/app/data", "/app/static/uploads"]
 
 # Startkommando
 CMD ["./entrypoint.sh"]
