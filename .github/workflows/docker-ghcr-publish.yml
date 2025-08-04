@@ -63,7 +63,8 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
-            ${{ steps.vars.outputs.VERSION == 'main' && format('ghcr.io/{0}/schulbuddy:latest', steps.vars.outputs.OWNER) || '' }}
+            ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.version_tag != 'dev')) && format('ghcr.io/{0}/schulbuddy:latest', steps.vars.outputs.OWNER) || '' }}
+            ${{ github.ref == 'refs/heads/dev' && format('ghcr.io/{0}/schulbuddy:dev', steps.vars.outputs.OWNER) || '' }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.created=${{ github.event.repository.created_at }}

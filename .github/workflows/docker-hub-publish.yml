@@ -1,10 +1,10 @@
 name: Docker Hub Publish
 
 on:
-  # Läuft, wenn ein neuer Tag gepusht wird, der mit 'v' beginnt
   push:
+    branches: [ main, dev ]
     tags:
-      - 'v*'
+      - 'v*' # Wird ausgeführt, wenn Tags wie v1.0.0, v1.1.0 etc. gepusht werden
   
   # Manueller Trigger über die GitHub UI
   workflow_dispatch:
@@ -41,8 +41,9 @@ jobs:
             # Tag-Push - verwende Tag
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           else
-            # Fallback
-            echo "VERSION=latest" >> $GITHUB_OUTPUT
+            # Branch-Push - verwende Branch-Namen
+            BRANCH=${GITHUB_REF#refs/heads/}
+            echo "VERSION=${BRANCH}-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
           fi
       
       - name: Build and Push Docker Image
@@ -52,6 +53,11 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest
+            ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.version_tag != 'dev')) && format('{0}/schulbuddy:latest', secrets.DOCKERHUB_USERNAME) || '' }}
+            ${{ github.ref == 'refs/heads/dev' && format('{0}/schulbuddy:dev', secrets.DOCKERHUB_USERNAME) || '' }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.created=${{ github.event.repository.created_at }}
+            org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
