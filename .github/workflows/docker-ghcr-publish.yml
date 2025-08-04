@@ -37,9 +37,10 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Extract Version from Event
-        id: version
+      - name: Extract Version and Owner
+        id: vars
         run: |
+          # Extrahiere Version
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             # Manueller Trigger - verwende Input
             echo "VERSION=${{ github.event.inputs.version_tag }}" >> $GITHUB_OUTPUT
@@ -51,6 +52,9 @@ jobs:
             BRANCH=${GITHUB_REF#refs/heads/}
             echo "VERSION=${BRANCH}-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
           fi
+          
+          # Repository Owner in Kleinbuchstaben
+          echo "OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
       
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
@@ -58,8 +62,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/schulbuddy:${{ steps.version.outputs.VERSION }}
-            ${{ steps.version.outputs.VERSION == 'main' && 'ghcr.io/${{ github.repository_owner }}/schulbuddy:latest' || '' }}
+            ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
+            ${{ steps.vars.outputs.VERSION == 'main' && format('ghcr.io/{0}/schulbuddy:latest', steps.vars.outputs.OWNER) || '' }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.created=${{ github.event.repository.created_at }}
