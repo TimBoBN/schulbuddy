@@ -44,27 +44,13 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             # Manueller Trigger - verwende Input
             echo "VERSION=${{ github.event.inputs.version_tag }}" >> $GITHUB_OUTPUT
-            # Wenn manuell ein Versions-Tag angegeben wurde, auch als latest markieren
-            if [[ "${{ github.event.inputs.version_tag }}" == v* ]]; then
-              echo "IS_RELEASE=true" >> $GITHUB_OUTPUT
-            else
-              echo "IS_RELEASE=false" >> $GITHUB_OUTPUT
-            fi
           elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             # Tag-Push - verwende Tag
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-            # Versions-Tags als latest markieren
-            echo "IS_RELEASE=true" >> $GITHUB_OUTPUT
           else
             # Branch-Push - verwende Branch-Namen
             BRANCH=${GITHUB_REF#refs/heads/}
             echo "VERSION=${BRANCH}-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
-            # Wenn es main ist, als latest markieren
-            if [ "$BRANCH" == "main" ]; then
-              echo "IS_RELEASE=true" >> $GITHUB_OUTPUT
-            else
-              echo "IS_RELEASE=false" >> $GITHUB_OUTPUT
-            fi
           fi
           
           # Repository Owner in Kleinbuchstaben
@@ -77,7 +63,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
-            ${{ steps.vars.outputs.IS_RELEASE == 'true' && format('ghcr.io/{0}/schulbuddy:latest', steps.vars.outputs.OWNER) || '' }}
+            ${{ steps.vars.outputs.VERSION == 'main' && format('ghcr.io/{0}/schulbuddy:latest', steps.vars.outputs.OWNER) || '' }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.created=${{ github.event.repository.created_at }}
