@@ -40,7 +40,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Extract Version and Owner
@@ -70,10 +70,12 @@ jobs:
             echo "Branch-basierte Version: ${VERSION} (Branch: ${BRANCH})"
           fi
           
-          # Repository Owner in Kleinbuchstaben
+          # Repository Owner in Kleinbuchstaben für Docker-Kompatibilität
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           echo "OWNER=${OWNER}" >> $GITHUB_OUTPUT
-          echo "Repository Owner: ${OWNER}"
+          # Debug-Ausgabe für Verifizierung
+          echo "Repository owner (original): ${{ github.repository_owner }}"
+          echo "Repository owner (lowercase): ${OWNER}"
           
           # Finale Ausgabe
           echo "Finaler Image-Tag für AMD64: ${VERSION}-amd64"
@@ -106,6 +108,7 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64
             ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64
+          # Stellt sicher, dass alle Tags klein geschrieben sind für GHCR
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.created=${{ github.event.repository.created_at }}
