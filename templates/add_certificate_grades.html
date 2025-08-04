@@ -3,6 +3,20 @@
 {% block title %}Zeugnisnoten hinzufügen{% endblock %}
 
 {% block content %}
+<!-- Datalist für erlaubte Noten -->
+<datalist id="allowed-grades">
+    <option value="1.0"></option>
+    <option value="1.5"></option>
+    <option value="2.0"></option>
+    <option value="2.5"></option>
+    <option value="3.0"></option>
+    <option value="3.5"></option>
+    <option value="4.0"></option>
+    <option value="4.5"></option>
+    <option value="5.0"></option>
+    <option value="5.5"></option>
+    <option value="6.0"></option>
+</datalist>
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -69,9 +83,11 @@
                                                name="grade_{{ subject }}" 
                                                min="1" 
                                                max="6" 
-                                               step="0.1" 
+                                               step="0.5" 
                                                placeholder="Note (1-6)"
-                                               onchange="updateGradeColor(this)">
+                                               onchange="updateGradeColor(this)"
+                                               oninput="validateGradeInput(this)"
+                                               list="allowed-grades">
                                     </div>
                                 </div>
                                 {% endfor %}
@@ -144,6 +160,7 @@
 .grade-input.grade-4 { border-color: #fd7e14; background-color: rgba(253, 126, 20, 0.1); }
 .grade-input.grade-5 { border-color: #dc3545; background-color: rgba(220, 53, 69, 0.1); }
 .grade-input.grade-6 { border-color: #6f42c1; background-color: rgba(111, 66, 193, 0.1); }
+.grade-input.invalid { border-color: red; box-shadow: 0 0 0 0.2rem rgba(255, 0, 0, 0.25); }
 </style>
 
 <script>
@@ -157,6 +174,25 @@ function updateGradeColor(input) {
         const gradeClass = 'grade-' + Math.round(value);
         input.classList.add(gradeClass);
     }
+}
+
+function validateGradeInput(input) {
+    const value = parseFloat(input.value);
+    const validValues = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
+    const isValid = validValues.includes(value);
+
+    if (!isValid && input.value !== '') {
+        // Korrigiere zu nächstem gültigen Wert
+        const nearestValidValue = Math.round(value * 2) / 2;
+        if (nearestValidValue < 1) input.value = 1;
+        else if (nearestValidValue > 6) input.value = 6;
+        else input.value = nearestValidValue;
+        
+        // Zeige Hinweis
+        alert(`Bitte nur Noten von 1-6 in 0.5er Schritten eingeben (z.B. 1.0, 1.5, 2.0, ...)`);
+    }
+    
+    updateGradeColor(input);
 }
 
 // Auto-fill grade colors on page load

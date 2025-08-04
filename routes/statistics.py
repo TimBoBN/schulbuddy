@@ -63,20 +63,63 @@ def statistics():
                 'week_start': week_start.strftime('%d.%m')
             }
         
-        # Fach-Performance
+        # Fach-Performance und Notenentwicklungs-Daten
         subject_performance = {}
+        grade_progression_data = {}
+        school_year_comparison = {}
+        
         for subject in Config.SUBJECTS.keys():
             subject_grades = Grade.query.filter_by(
                 user_id=current_user.id,
                 subject=subject
-            ).all()
+            ).order_by(Grade.timestamp).all()
             
             if subject_grades:
+                # Normale Noten (Tests, Klassenarbeiten, etc.)
+                normal_grades = [g for g in subject_grades if g.grade_type != 'certificate']
+                # Zeugnisnoten
+                certificate_grades = [g for g in subject_grades if g.grade_type == 'certificate']
+                
                 avg_grade = sum(g.grade for g in subject_grades) / len(subject_grades)
                 subject_performance[subject] = {
                     'average': round(avg_grade, 2),
                     'count': len(subject_grades),
+                    'normal_count': len(normal_grades),
+                    'certificate_count': len(certificate_grades),
                     'trend': 'improving' if len(subject_grades) > 1 and subject_grades[-1].grade < avg_grade else 'stable'
+                }
+                
+                # Daten für Notenentwicklungs-Graph vorbereiten
+                if subject_grades:
+                    grade_progression_data[subject] = {
+                        'dates': [g.timestamp.strftime('%Y-%m-%d') for g in subject_grades],
+                        'grades': [g.grade for g in subject_grades],
+                        'descriptions': [g.description or 'Unbekannt' for g in subject_grades],
+                        'types': [g.grade_type for g in subject_grades]
+                    }
+        
+        # Schuljahr-Vergleichsdaten
+        all_grades = Grade.query.filter_by(user_id=current_user.id).order_by(Grade.timestamp).all()
+        grades_by_year = defaultdict(list)
+        
+        for grade in all_grades:
+            grade_year = grade.timestamp.year
+            grade_month = grade.timestamp.month
+            
+            # Bestimme Schuljahr (September bis August)
+            if grade_month >= 9:  # Sep-Dez
+                school_year = f"{grade_year}/{str(grade_year + 1)[-2:]}"
+            else:  # Jan-Aug
+                school_year = f"{grade_year - 1}/{str(grade_year)[-2:]}"
+            
+            grades_by_year[school_year].append(grade)
+        
+        for year, year_grades in grades_by_year.items():
+            if year_grades:
+                year_avg = sum(g.grade for g in year_grades) / len(year_grades)
+                school_year_comparison[year] = {
+                    'average': round(year_avg, 2),
+                    'count': len(year_grades)
                 }
         
         # Timer-Statistiken hinzufügen
@@ -108,6 +151,8 @@ def statistics():
                              activity_data=dict(activity_data),
                              weekly_stats=dict(weekly_stats),
                              subject_performance=subject_performance,
+                             grade_progression_data=grade_progression_data,
+                             school_year_comparison=school_year_comparison,
                              user=current_user,
                              total_study_sessions=total_study_sessions,
                              total_study_hours=total_study_hours,

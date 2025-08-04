@@ -30,34 +30,10 @@ def init_database():
         tables = inspector.get_table_names()
         print(f"Vorhandene Tabellen: {tables}")
 
-        # Teste mit ein paar Beispieldaten
+        # Keine Testdaten mehr einfügen, um eine saubere DB zu haben
         try:
-            from datetime import datetime, date
-
-            # Teste Task
-            test_task = Task(
-                title="Test Aufgabe",
-                description="Eine Test-Aufgabe",
-                due_date=date(2024, 12, 31),
-                subject="Mathematik",
-                completed=False,
-            )
-            db.session.add(test_task)
-
-            # Teste Grade
-            test_grade = Grade(
-                subject="Mathematik", grade=2.0, timestamp=datetime.utcnow()
-            )
-            db.session.add(test_grade)
-
-            db.session.commit()
-            print("Testdaten erfolgreich hinzugefügt")
-
-            # Überprüfe die Daten
-            tasks = Task.query.all()
-            grades = Grade.query.all()
-            print(f"Anzahl Tasks: {len(tasks)}")
-            print(f"Anzahl Grades: {len(grades)}")
+            from datetime import datetime
+            print("Datenbank erfolgreich initialisiert.")
 
         except Exception as e:
             print(f"Fehler beim Hinzufügen der Testdaten: {e}")
