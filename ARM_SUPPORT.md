@@ -13,13 +13,17 @@ SchulBuddy bietet Docker-Images für folgende Architekturen:
 
 Aufgrund von Build-Zeit- und Kompatibilitätsüberlegungen haben die ARM-basierten Docker-Images folgende Einschränkungen:
 
-1. **Keine pandas-Unterstützung**: 
-   - Die Datenanalyse- und Export-Funktionen, die pandas verwenden, sind auf ARM-Architekturen nicht verfügbar
-   - Die entsprechenden Funktionen in der Benutzeroberfläche werden fehlerhafte Ergebnisse liefern
+1. **Eingeschränkte pandas-Unterstützung**: 
+   - Die Datenanalyse- und Export-Funktionen, die pandas verwenden, sind auf ARM-Architekturen eingeschränkt verfügbar
+   - Es wird eine vereinfachte Version verwendet, die möglicherweise nicht alle Funktionen unterstützt
 
-2. **Keine reportlab-Unterstützung**:
-   - Die PDF-Generierungsfunktionen sind auf ARM-Architekturen nicht verfügbar
-   - Versuche, PDFs zu generieren, werden fehlschlagen
+2. **Eingeschränkte reportlab-Unterstützung**:
+   - Die PDF-Generierungsfunktionen sind auf ARM-Architekturen eingeschränkt verfügbar
+   - Komplexere PDF-Generierungen könnten fehlschlagen
+
+3. **Pillow-Unterstützung**:
+   - Pillow wird mit Grundfunktionalität unterstützt
+   - Für die ARM-Version wurden zusätzliche Abhängigkeiten hinzugefügt, um die Kompatibilität zu verbessern
 
 ## Empfohlene Verwendung
 

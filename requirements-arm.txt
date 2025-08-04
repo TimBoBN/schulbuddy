@@ -3,10 +3,11 @@ Werkzeug==3.1.3
 Flask-SQLAlchemy==3.0.5
 Flask-Login==0.6.3
 pyotp==2.8.0
-qrcode[pil]==7.4.2
-# ARM-kompatible Version von Reportlab
-reportlab==4.0.4
-# Wir verwenden eine ältere pandas-Version für schnellere Installation auf ARM
-pandas==1.5.3
+# qrcode ohne Pillow-Dependency, da Pillow separat installiert wird
+qrcode==7.4.2
 xlsxwriter==3.2.5
 gunicorn==23.0.0
+
+# Folgende Pakete werden über Stub-Module oder Dockerfile-Befehle gehandhabt
+# Pillow - in Dockerfile separat installiert mit den benötigten Abhängigkeiten
+# Pandas und Reportlab - durch Stubs ersetzt für schnellere Installation
