@@ -29,6 +29,9 @@ RUN apt-get update && apt-get install -y \
 # Python packages von builder stage kopieren
 COPY --from=builder /root/.local /usr/local
 
+# Stellen sicher, dass pip und setuptools auch in der finalen Phase aktualisiert sind
+RUN pip install --no-cache-dir --upgrade pip setuptools
+
 # App-Code kopieren
 COPY . .
 
