@@ -43,12 +43,57 @@ jobs:
             type=ref,event=branch
             type=sha,format=short
 
-      - name: Build and push
+      # Set up QEMU
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64,arm
+
+      # Verbesserte QEMU-Konfiguration
+      - name: Set up QEMU emulation
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          echo "Verifying QEMU installations:"
+          ls -la /proc/sys/fs/binfmt_misc/
+          
+      # Zwei-stufiger Build-Prozess: Zuerst AMD64, dann ARM
+      - name: Build and Push AMD64 Image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}-amd64
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      
+      - name: Build and Push ARM Images
+        uses: docker/build-push-action@v4
+        continue-on-error: true  # Erlaubt Fortfahren auch bei ARM-Fehlern
+        with:
+          context: .
+          push: true
+          platforms: linux/arm64,linux/arm/v7
+          tags: ${{ steps.meta.outputs.tags }}-arm
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+      # Multi-Arch-Manifest erstellen
+      - name: Create and Push Multi-Arch Manifest
+        if: success()
+        run: |
+          # Tag-Namen extrahieren
+          IFS=',' read -ra TAGS <<< "${{ steps.meta.outputs.tags }}"
+          
+          for TAG in "${TAGS[@]}"; do
+            echo "Creating manifest for $TAG"
+            docker manifest create $TAG \
+              $TAG-amd64 \
+              $TAG-arm || true
+              
+            docker manifest push $TAG || true
+          done

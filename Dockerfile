@@ -18,17 +18,22 @@ WORKDIR /app
 COPY requirements.txt requirements-arm.txt ./
 
 # Unterschiedliche Installation je nach Ziel-Architektur
-RUN apt-get update && apt-get install -y \
-    gcc g++ make \
-    && pip install --no-cache-dir --upgrade pip setuptools wheel \
-    && if [ "$TARGETPLATFORM" = "linux/arm64" ] || [ "$TARGETPLATFORM" = "linux/arm/v7" ]; then \
-        apt-get install -y --no-install-recommends \
-            libblas-dev liblapack-dev libatlas-base-dev gfortran \
-            && pip install --no-cache-dir -r requirements-arm.txt; \
+RUN apt-get update && apt-get install -y gcc g++ make && \
+    pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# ARM-spezifische Installation
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ] || [ "$TARGETPLATFORM" = "linux/arm/v7" ]; then \
+        echo "Installing ARM-specific dependencies" && \
+        apt-get update && \
+        apt-get install -y libblas-dev liblapack-dev libatlas-base-dev gfortran && \
+        pip install --no-cache-dir -r requirements-arm.txt; \
     else \
+        echo "Installing standard dependencies" && \
         pip install --no-cache-dir -r requirements.txt; \
-    fi \
-    && rm -rf /var/lib/apt/lists/*
+    fi
+
+# Cleanup
+RUN rm -rf /var/lib/apt/lists/*
 
 # Production Stage
 FROM --platform=$TARGETPLATFORM python:3.11.7-slim
@@ -39,13 +44,20 @@ ARG TARGETPLATFORM
 # Arbeitsverzeichnis setzen
 WORKDIR /app
 
-# System-Dependencies installieren und Python-Pakete kopieren
-RUN apt-get update && apt-get install -y curl \
-    && if [ "$TARGETPLATFORM" = "linux/arm64" ] || [ "$TARGETPLATFORM" = "linux/arm/v7" ]; then \
-        apt-get install -y --no-install-recommends libatlas-base-dev libopenblas-base; \
-    fi \
-    && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /usr/local/lib/python3.11/site-packages/
+# System-Dependencies installieren
+RUN apt-get update && apt-get install -y curl && \
+    mkdir -p /usr/local/lib/python3.11/site-packages/
+
+# ARM-spezifische Pakete für Produktion
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ] || [ "$TARGETPLATFORM" = "linux/arm/v7" ]; then \
+        echo "Installing ARM-specific production dependencies" && \
+        apt-get update && \
+        apt-get install -y libatlas-base-dev libopenblas-base && \
+        rm -rf /var/lib/apt/lists/*; \
+    else \
+        echo "No special dependencies for amd64" && \
+        rm -rf /var/lib/apt/lists/*; \
+    fi
 
 # Python-Pakete aus Builder kopieren
 COPY --from=builder /usr/local/ /usr/local/
