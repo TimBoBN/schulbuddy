@@ -194,10 +194,17 @@ Die Anwendung unterstützt flexible Port-Konfiguration:
 - **dev**: Entwicklungsversion mit neuesten Features (dev-Branch)
 - **vX.Y.Z**: Spezifische Versionen (Tags)
 
+### Unterstützte Architekturen
+
+Alle unsere Docker Images unterstützen folgende Plattformen:
+- **linux/amd64**: Standard x86_64 (Intel/AMD)
+- **linux/arm64**: 64-bit ARM (z.B. Apple Silicon, Raspberry Pi 4 64-bit)
+- **linux/arm/v7**: 32-bit ARM (z.B. Raspberry Pi 2/3)
+
 ## 📖 Erweiterte Dokumentation
 
 - [🔒 Sicherheitsrichtlinie & CVE-Übersicht](SECURITY.md)
-- [� Docker-Anleitung](docs/DOCKER_README.md)
+- [🐳 Docker-Anleitung](docs/DOCKER_README.md)
 - [🔧 Setup-Anleitung](docs/SETUP_README.md)
 - [🌐 Port-Konfiguration](docs/PORT_CONFIG.md)
 

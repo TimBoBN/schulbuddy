@@ -24,6 +24,10 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     curl \
+    # ARM-spezifische Optimierungen 
+    && if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "armv7l" ]; then \
+       apt-get install -y --no-install-recommends libblas-dev liblapack-dev libatlas-base-dev; \
+    fi \
     && rm -rf /var/lib/apt/lists/*
 
 # Python packages von builder stage kopieren
