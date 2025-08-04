@@ -14,11 +14,11 @@ WORKDIR /app
 COPY requirements-arm.txt ./
 
 # ARM-spezifische Dependencies installieren
-RUN apt-get update && \
-    apt-get install -y gcc g++ make libblas-dev liblapack-dev libatlas-base-dev gfortran && \
-    pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements-arm.txt && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get update
+RUN apt-get install -y gcc g++ make libatlas-base-dev gfortran
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN pip install --no-cache-dir -r requirements-arm.txt
+RUN rm -rf /var/lib/apt/lists/*
 
 # Production Stage
 FROM python:3.11.7-slim
@@ -27,10 +27,10 @@ FROM python:3.11.7-slim
 WORKDIR /app
 
 # ARM-spezifische Pakete installieren
-RUN apt-get update && \
-    apt-get install -y curl libatlas-base-dev libopenblas-base && \
-    mkdir -p /usr/local/lib/python3.11/site-packages/ && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get update
+RUN apt-get install -y curl libatlas-base-dev
+RUN mkdir -p /usr/local/lib/python3.11/site-packages/
+RUN rm -rf /var/lib/apt/lists/*
 
 # Python-Pakete aus Builder kopieren
 COPY --from=builder /usr/local/ /usr/local/
