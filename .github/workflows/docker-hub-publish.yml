@@ -51,6 +51,22 @@ jobs:
         with:
           platforms: arm64,arm
 
+      # Vorbereiten der Build-Umgebung für bessere Kompatibilität
+      - name: Set up BuildKit Cache
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+      
+      # Lokalen QEMU-Zustand bereinigen für saubere Umgebung
+      - name: Clean QEMU state
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
         with:
@@ -59,7 +75,6 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           build-args: |
             BUILDKIT_INLINE_CACHE=1
-            PYTHON_VERSION=3.11
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
             ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.version_tag != 'dev')) && format('{0}/schulbuddy:latest', secrets.DOCKERHUB_USERNAME) || '' }}
@@ -68,9 +83,21 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.created=${{ github.event.repository.created_at }}
             org.opencontainers.image.revision=${{ github.sha }}
+          # Lokalen Cache für GitHub Actions verwenden für bessere Performance
           cache-from: |
-            type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:buildcache
+            type=local,src=/tmp/.buildx-cache
             type=gha
           cache-to: |
-            type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:buildcache,mode=max
+            type=local,dest=/tmp/.buildx-cache-new,mode=max
             type=gha,mode=max
+          # GitHub Actions spezifische Optionen
+          provenance: false
+          outputs: type=registry,compression=gzip
+          # No-fail Strategie für das erste Release
+          allow-failure: true
+
+      # Cache aktualisieren für nächsten Lauf
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache

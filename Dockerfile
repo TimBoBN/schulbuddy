@@ -1,89 +1,60 @@
 # SchulBuddy Dockerfile - Multi-stage build für Multi-Architektur-Support
-ARG PYTHON_VERSION=3.11
-FROM --platform=$BUILDPLATFORM python:${PYTHON_VERSION}-slim as builder
-
-# Detaillierte Python-Version für Debugging ausgeben
-RUN python --version
-
-# GitHub-spezifische Labels
-LABEL org.opencontainers.image.source=https://github.com/TimBoBN/schulbuddy
-LABEL org.opencontainers.image.description="SchulBuddy - Eine Anwendung zur Schulnotenerfassung und -verwaltung"
-LABEL org.opencontainers.image.licenses=MIT
+# Feste Python-Version 3.11.7
+FROM --platform=$BUILDPLATFORM python:3.11.7-slim as builder
 
 # Plattform-ARGs verfügbar machen
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
 
+# Metadaten
+LABEL org.opencontainers.image.source=https://github.com/TimBoBN/schulbuddy
+LABEL org.opencontainers.image.description="SchulBuddy - Eine Anwendung zur Schulnotenerfassung und -verwaltung"
+LABEL org.opencontainers.image.licenses=MIT
+
 # Arbeitsverzeichnis setzen
 WORKDIR /app
 
-# System-Dependencies für den Builder installieren
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    make \
-    && rm -rf /var/lib/apt/lists/*
-
-# Requirements kopieren
-COPY requirements.txt ./
-COPY requirements-arm.txt ./
+# System-Dependencies für den Builder installieren und Requirements kopieren
+COPY requirements.txt requirements-arm.txt ./
 
 # Unterschiedliche Installation je nach Ziel-Architektur
-RUN echo "Building for $TARGETPLATFORM on $BUILDPLATFORM" && \
-    pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    if [ "$TARGETPLATFORM" = "linux/arm64" ] || [ "$TARGETPLATFORM" = "linux/arm/v7" ]; then \
-        apt-get update && \
+RUN apt-get update && apt-get install -y \
+    gcc g++ make \
+    && pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && if [ "$TARGETPLATFORM" = "linux/arm64" ] || [ "$TARGETPLATFORM" = "linux/arm/v7" ]; then \
         apt-get install -y --no-install-recommends \
-            libblas-dev \
-            liblapack-dev \
-            libatlas-base-dev \
-            gfortran \
+            libblas-dev liblapack-dev libatlas-base-dev gfortran \
             && pip install --no-cache-dir -r requirements-arm.txt; \
     else \
         pip install --no-cache-dir -r requirements.txt; \
-    fi
+    fi \
+    && rm -rf /var/lib/apt/lists/*
 
 # Production Stage
-FROM --platform=$TARGETPLATFORM python:${PYTHON_VERSION}-slim
+FROM --platform=$TARGETPLATFORM python:3.11.7-slim
 
 # ARGs für Multi-Platform-Build
 ARG TARGETPLATFORM
-ARG PYTHON_VERSION
-
-# Detaillierte Python-Version für Debugging ausgeben
-RUN python --version
 
 # Arbeitsverzeichnis setzen
 WORKDIR /app
 
-# System-Dependencies installieren
-RUN apt-get update && apt-get install -y curl && \
-    if [ "$TARGETPLATFORM" = "linux/arm64" ] || [ "$TARGETPLATFORM" = "linux/arm/v7" ]; then \
-        apt-get install -y --no-install-recommends \
-            libatlas-base-dev \
-            libopenblas-base; \
-    fi && \
-    rm -rf /var/lib/apt/lists/*
+# System-Dependencies installieren und Python-Pakete kopieren
+RUN apt-get update && apt-get install -y curl \
+    && if [ "$TARGETPLATFORM" = "linux/arm64" ] || [ "$TARGETPLATFORM" = "linux/arm/v7" ]; then \
+        apt-get install -y --no-install-recommends libatlas-base-dev libopenblas-base; \
+    fi \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /usr/local/lib/python3.11/site-packages/
 
-# Python packages vom builder stage kopieren - dynamische Python-Version ermitteln
-RUN python_versions="/usr/local/lib/python*" && \
-    echo "Available Python versions in /usr/local/lib/: $(ls -d $python_versions 2>/dev/null || echo 'None')" && \
-    PYTHON_MINOR=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))') && \
-    echo "Current Python version: $PYTHON_MINOR" && \
-    mkdir -p /usr/local/lib/python$PYTHON_MINOR/site-packages/
-
-# Site-packages und Binaries vom Builder kopieren - robustere Methode
+# Python-Pakete aus Builder kopieren
 COPY --from=builder /usr/local/ /usr/local/
 
-# Stellen sicher, dass pip und setuptools auch in der finalen Phase aktualisiert sind
+# pip und setuptools aktualisieren
 RUN pip install --no-cache-dir --upgrade pip setuptools
 
 # App-Code kopieren
 COPY . .
-
-# Verzeichnisse erstellen
-RUN mkdir -p static/uploads instance data && \
-    chmod 755 static/uploads instance data
 
 # Entrypoint script erstellen
 RUN echo '#!/bin/bash\n\
@@ -91,7 +62,7 @@ set -e\n\
 \n\
 echo "🚀 Starting SchulBuddy Container..."\n\
 \n\
-# Verzeichnisse erstellen und Berechtigungen setzen\n\
+# Verzeichnisse erstellen\n\
 mkdir -p /app/data /app/static/uploads\n\
 \n\
 # Environment variables anzeigen\n\
@@ -118,35 +89,31 @@ fi\n\
 exec gunicorn --config gunicorn.conf.py wsgi:application\n\
 ' > entrypoint.sh && chmod +x entrypoint.sh
 
-# Umgebungsvariablen setzen
-ENV FLASK_APP=app.py
-ENV FLASK_ENV=production
-ENV DOCKER_ENV=1
-ENV PYTHONPATH=/app
+# Umgebungsvariablen und Port
+ENV FLASK_APP=app.py \
+    FLASK_ENV=production \
+    DOCKER_ENV=1 \
+    PYTHONPATH=/app
 
-# Port freigeben
 EXPOSE 5000
 
-# Healthcheck hinzufügen
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
-# Security hardening
-# Setze Dateiberechtigungen und reduziere Angriffsfläche
-RUN chmod -R 755 /app && \
-    chmod 700 /app/entrypoint.sh && \
-    # Read-only permissions für Code-Dateien
-    find /app -type f -not -path "*/\.*" -not -path "*/data/*" -not -path "*/static/uploads/*" -exec chmod 644 {} \; && \
-    # Entferne unnötige Tools und Dateien
-    rm -rf /tmp/* /var/tmp/* /var/cache/* /var/log/* && \
-    # Non-root user mit minimalen Berechtigungen erstellen
-    adduser --disabled-password --gecos '' appuser && \
-    chown -R appuser:appuser /app
+# Security hardening und Berechtigungen
+RUN mkdir -p static/uploads instance data \
+    && chmod -R 755 /app static/uploads instance data \
+    && chmod 700 /app/entrypoint.sh \
+    && find /app -type f -not -path "*/\.*" -not -path "*/data/*" -not -path "*/static/uploads/*" -exec chmod 644 {} \; \
+    && rm -rf /tmp/* /var/tmp/* /var/cache/* /var/log/* \
+    && adduser --disabled-password --gecos '' appuser \
+    && chown -R appuser:appuser /app
 
-# Setze niedrige Berechtigungen für den Container
+# Non-root user
 USER appuser
 
-# Definiere Volumes explizit als solche für bessere Transparenz
+# Volumes
 VOLUME ["/app/data", "/app/static/uploads"]
 
 # Startkommando
