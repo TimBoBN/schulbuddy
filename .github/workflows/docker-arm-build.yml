@@ -1,0 +1,166 @@
+name: ARM Docker Build
+
+on:
+  # Manuelle Ausführung - da ARM-Builds sehr lange dauern können
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Version tag für das Docker Image (z.B. v1.1.0, dev)'
+        required: true
+        default: 'arm-latest'
+
+  # Nur ausführen, wenn die ARM_BUILD.md-Datei oder das Dockerfile.arm geändert wurde
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'Dockerfile.arm'
+      - 'ARM_SUPPORT.md'
+      - 'requirements-arm.txt'
+      - '.github/workflows/docker-arm-build.yml'
+
+jobs:
+  arm-docker-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120  # Erhöhter Timeout speziell für ARM-Builds
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract Version
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Manueller Trigger - verwende Input
+            echo "VERSION=${{ github.event.inputs.version_tag }}" >> $GITHUB_OUTPUT
+          else
+            # Branch-Push - verwende Branch-Namen
+            BRANCH=${GITHUB_REF#refs/heads/}
+            echo "VERSION=${BRANCH}-arm-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+          fi
+          
+          # Repository Owner in Kleinbuchstaben
+          echo "OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64,arm
+
+      - name: Verbesserte QEMU-Konfiguration
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          echo "Verifying QEMU installations:"
+          ls -la /proc/sys/fs/binfmt_misc/
+      
+      # Vorbereiten der Build-Umgebung für bessere Kompatibilität
+      - name: Set up BuildKit Cache (ARM)
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache-arm
+          key: ${{ runner.os }}-buildx-arm-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-arm-
+            
+      # Build und Push ARM Images für Docker Hub
+      - name: Build and Push ARM Images to Docker Hub
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.arm
+          push: true
+          platforms: linux/arm64,linux/arm/v7
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+          cache-from: |
+            type=local,src=/tmp/.buildx-cache-arm
+            type=gha,scope=arm-build
+          cache-to: |
+            type=local,dest=/tmp/.buildx-cache-arm-new,mode=max
+            type=gha,scope=arm-build,mode=max
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:arm-latest
+            
+      # Build und Push ARM Images für GitHub Container Registry
+      - name: Build and Push ARM Images to GitHub Container Registry
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.arm
+          push: true
+          platforms: linux/arm64,linux/arm/v7
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+          cache-from: |
+            type=local,src=/tmp/.buildx-cache-arm
+            type=gha,scope=arm-build
+          cache-to: |
+            type=local,dest=/tmp/.buildx-cache-arm-new,mode=max
+            type=gha,scope=arm-build,mode=max
+          tags: |
+            ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
+            ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:arm-latest
+            
+      # Cache für nächste Builds verschieben
+      - name: Move ARM cache
+        if: always()
+        run: |
+          rm -rf /tmp/.buildx-cache-arm
+          mv /tmp/.buildx-cache-arm-new /tmp/.buildx-cache-arm || true
+          
+      # Manifest-Erstellung - ARM-Builds mit vorhandenen AMD64-Builds kombinieren
+      - name: Create and Push Multi-Arch Manifests
+        if: success()
+        run: |
+          echo "Erstelle Multi-Arch Manifest mit ARM und AMD64 Images"
+          
+          # AMD64 Images prüfen (falls sie existieren) und mit ARM-Images kombinieren
+          if docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 > /dev/null 2>&1; then
+            # Version-spezifisches Manifest erstellen
+            docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }} \
+              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
+              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
+            
+            docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }} || true
+            
+            # Nur bei main-Branch oder manueller Ausführung mit "latest" Tag
+            if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.version_tag }}" == "latest" ]]; then
+              # Latest-Tag Manifest erstellen
+              docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest \
+                ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
+                ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
+                
+              docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest || true
+            fi
+            
+            # Bei dev-Branch das dev-Tag erstellen
+            if [[ "${{ github.ref }}" == "refs/heads/dev" || "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.version_tag }}" == "dev" ]]; then
+              # Dev-Tag Manifest erstellen
+              docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev \
+                ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
+                ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
+                
+              docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev || true
+            fi
+          else
+            echo "AMD64 Images nicht gefunden - nur ARM-Images veröffentlicht"
+          fi

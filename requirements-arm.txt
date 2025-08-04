@@ -6,7 +6,7 @@ pyotp==2.8.0
 qrcode[pil]==7.4.2
 # ARM-kompatible Version von Reportlab
 reportlab==4.0.4
-# Leichtgewichtigere Version von pandas für ARM
-pandas==2.3.1
+# Wir verwenden eine ältere pandas-Version für schnellere Installation auf ARM
+pandas==1.5.3
 xlsxwriter==3.2.5
 gunicorn==23.0.0

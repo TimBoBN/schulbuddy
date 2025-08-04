@@ -62,13 +62,22 @@ jobs:
           platforms: arm64,arm
 
       # Vorbereiten der Build-Umgebung für bessere Kompatibilität
-      - name: Set up BuildKit Cache
+      - name: Set up BuildKit Cache (AMD64)
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-ghcr-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-ghcr-
+            
+      # Spezifischer Cache für ARM-Builds
+      - name: Set up BuildKit Cache (ARM)
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache-arm
+          key: ${{ runner.os }}-buildx-ghcr-arm-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-ghcr-arm-
       
       # Verbesserte QEMU-Konfiguration
       - name: Set up QEMU emulation
@@ -102,8 +111,21 @@ jobs:
           platforms: linux/arm64,linux/arm/v7
           build-args: |
             BUILDKIT_INLINE_CACHE=1
+          cache-from: |
+            type=local,src=/tmp/.buildx-cache-arm
+            type=gha,scope=arm-build
+          cache-to: |
+            type=local,dest=/tmp/.buildx-cache-arm-new,mode=max
+            type=gha,scope=arm-build,mode=max
           tags: |
             ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
+      
+      # Cache für nächste Builds verschieben
+      - name: Move ARM cache
+        if: always()  # Immer ausführen, auch bei Fehlern
+        run: |
+          rm -rf /tmp/.buildx-cache-arm
+          mv /tmp/.buildx-cache-arm-new /tmp/.buildx-cache-arm || true
       
       # Erstellen des Multi-Arch-Manifests
       - name: Create and Push Multi-Arch Manifest

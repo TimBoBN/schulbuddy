@@ -5,6 +5,7 @@ on:
     branches: [ main, dev ]
     tags:
       - 'v*' # Wird ausgeführt, wenn Tags wie v1.0.0, v1.1.0 etc. gepusht werden
+  # Force-Trigger durch Änderung dieser Zeile (Build-Optimierungen)
   
   # Manueller Trigger über die GitHub UI
   workflow_dispatch:
@@ -46,11 +47,6 @@ jobs:
             echo "VERSION=${BRANCH}-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
           fi
       
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: arm64,arm
-
       # Vorbereiten der Build-Umgebung für bessere Kompatibilität
       - name: Set up BuildKit Cache
         uses: actions/cache@v3
@@ -60,14 +56,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
       
-      # Verbesserte QEMU-Konfiguration
-      - name: Set up QEMU emulation
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-user-static binfmt-support
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-          echo "Verifying QEMU installations:"
-          ls -la /proc/sys/fs/binfmt_misc/
+      # AMD64 build benötigt keine QEMU-Emulation
           
       # Zwei-stufiger Build-Prozess mit separaten Dockerfiles
       - name: Build and Push AMD64 Image
@@ -82,48 +71,23 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64
       
-      - name: Build and Push ARM Images
-        uses: docker/build-push-action@v4
-        continue-on-error: true  # Erlaubt Fortfahren auch bei ARM-Fehlern
-        with:
-          context: .
-          file: ./Dockerfile.arm
-          push: true
-          platforms: linux/arm64,linux/arm/v7
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
+      # ARM builds werden in einem separaten Workflow ausgeführt
       
-      # Erstellen des Multi-Arch-Manifests
-      - name: Create and Push Multi-Arch Manifest
+      # Tag-Handling für AMD64 Images
+      - name: Tag AMD64 Image for Main and Dev
         if: success()
         run: |
-          echo "Erstelle Multi-Arch Manifest"
-          docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }} \
-            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
-            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm || true
-          
           # Auch Latest-Tag erstellen wenn main branch oder tag
           if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == refs/tags/v* || "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.version_tag }}" != "dev" ]]; then
-            docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest \
-              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
-              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm || true
-            
-            docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest || true
+            docker tag ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest-amd64
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest-amd64 || true
           fi
           
           # Dev-Tag erstellen wenn dev branch
           if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
-            docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev \
-              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
-              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm || true
-            
-            docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev || true
+            docker tag ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev-amd64
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev-amd64 || true
           fi
-          
-          # Das Haupt-Manifest pushen
-          docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }} || true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
             ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.version_tag != 'dev')) && format('{0}/schulbuddy:latest', secrets.DOCKERHUB_USERNAME) || '' }}
