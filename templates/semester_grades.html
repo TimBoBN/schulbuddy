@@ -14,27 +14,36 @@
             <!-- Halbjahr-Auswahl -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5>🎯 Halbjahr auswählen</h5>
+                    <h5>🎯 Halbjahr und Schuljahr auswählen</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <form method="get" class="d-flex gap-2">
-                                <select class="form-select" name="semester" onchange="this.form.submit()">
-                                    <option value="1" {% if semester == 1 %}selected{% endif %}>1. Halbjahr</option>
-                                    <option value="2" {% if semester == 2 %}selected{% endif %}>2. Halbjahr</option>
-                                </select>
-                                <input type="hidden" name="school_year" value="{{ school_year }}">
-                            </form>
+                    <form method="get" class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Halbjahr:</label>
+                            <select class="form-select" name="semester">
+                                <option value="1" {% if semester == 1 %}selected{% endif %}>1. Halbjahr (Sep-Jan)</option>
+                                <option value="2" {% if semester == 2 %}selected{% endif %}>2. Halbjahr (Feb-Jul)</option>
+                            </select>
                         </div>
-                        <div class="col-md-6">
-                            <form method="get" class="d-flex gap-2">
-                                <input type="hidden" name="semester" value="{{ semester }}">
-                                <input class="form-control" type="text" name="school_year" value="{{ school_year }}" placeholder="Schuljahr">
-                                <button type="submit" class="btn btn-outline-primary">Laden</button>
-                            </form>
+                        <div class="col-md-4">
+                            <label class="form-label">Schuljahr:</label>
+                            <select class="form-select" name="school_year">
+                                {% if available_years %}
+                                    {% for year_option in available_years %}
+                                        <option value="{{ year_option }}" {% if year_option == school_year %}selected{% endif %}>{{ year_option }}</option>
+                                    {% endfor %}
+                                {% else %}
+                                    <option value="2024/25" {% if school_year == "2024/25" %}selected{% endif %}>2024/25</option>
+                                    <option value="2025/26" {% if school_year == "2025/26" %}selected{% endif %}>2025/26</option>
+                                {% endif %}
+                            </select>
                         </div>
-                    </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Anzeigen
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
             
@@ -43,6 +52,7 @@
                 <div class="card-body">
                     <h3>📈 Zeugnis-Durchschnitt {{ semester }}. Halbjahr {{ school_year }}</h3>
                     <h2>{{ "%.2f"|format(total_average or 0) }}</h2>
+                    <p class="mb-0">Gesamtdurchschnitt: {{ "%.2f"|format(overall_average or 0) }}</p>
                 </div>
             </div>
             
@@ -79,9 +89,18 @@
                                                         {% if grade.description %}
                                                             <div class="grade-description">{{ grade.description }}</div>
                                                         {% endif %}
-                                                        {% if grade.date %}
-                                                            <div class="grade-date">{{ grade.date.strftime('%d.%m.%Y') }}</div>
-                                                        {% endif %}
+                                                        <div class="grade-date">{{ grade.timestamp.strftime('%d.%m.%Y') }}</div>
+                                                        <div class="grade-type">
+                                                            {% if grade.grade_type == 'certificate' %}
+                                                                <small class="badge bg-warning">🏆 Zeugnisnote</small>
+                                                            {% elif grade.grade_type == 'test' %}
+                                                                <small class="badge bg-info">📝 Test</small>
+                                                            {% elif grade.grade_type == 'task' %}
+                                                                <small class="badge bg-success">📋 Aufgabe</small>
+                                                            {% else %}
+                                                                <small class="badge bg-secondary">📚 {{ grade.grade_type }}</small>
+                                                            {% endif %}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             {% endif %}
@@ -109,7 +128,8 @@
                                         <th>Note</th>
                                         <th>Beschreibung</th>
                                         <th>Datum</th>
-                                        <th>Verknüpfte Aufgabe</th>
+                                        <th>Typ</th>
+                                        <th>Verknüpfung</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -122,7 +142,18 @@
                                             </td>
                                             <td><strong>{{ grade.grade }}</strong></td>
                                             <td>{{ grade.description or '-' }}</td>
-                                            <td>{{ grade.date.strftime('%d.%m.%Y') if grade.date else '-' }}</td>
+                                            <td>{{ grade.timestamp.strftime('%d.%m.%Y') }}</td>
+                                            <td>
+                                                {% if grade.grade_type == 'certificate' %}
+                                                    <span class="badge bg-warning">🏆 Zeugnisnote</span>
+                                                {% elif grade.grade_type == 'test' %}
+                                                    <span class="badge bg-info">📝 Test</span>
+                                                {% elif grade.grade_type == 'task' %}
+                                                    <span class="badge bg-success">📋 Aufgabe</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">📚 {{ grade.grade_type }}</span>
+                                                {% endif %}
+                                            </td>
                                             <td>
                                                 {% if grade.task_id %}
                                                     <small class="text-muted">Mit Aufgabe verknüpft</small>

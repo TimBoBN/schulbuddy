@@ -20,10 +20,19 @@ def add_grade():
     grade_type = request.form.get("grade_type", "test")
     description = request.form.get("description", "")
     
+    # Liste der erlaubten Notenwerte (1.0, 1.5, 2.0, usw.)
+    valid_grades = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0]
+    
     try:
         grade_value = float(grade_value)
+        # Prüfe ob Wert in erlaubten Noten ist
         if grade_value < 1 or grade_value > 6:
             flash("Note muss zwischen 1 und 6 liegen", "error")
+            return redirect(url_for('main.index'))
+        
+        # Prüfe ob Note in 0.5er Schritten ist
+        if grade_value not in valid_grades:
+            flash("Bitte nur Noten in 0.5er Schritten eingeben (1.0, 1.5, 2.0, ...)", "error")
             return redirect(url_for('main.index'))
     except ValueError:
         flash("Ungültige Note", "error")
@@ -136,22 +145,61 @@ def add_grade_to_task(task_id):
 @login_required
 def semester_grades():
     """Semester-Noten anzeigen"""
+    # Alle Noten des Users
+    all_grades = Grade.query.filter_by(user_id=current_user.id).order_by(Grade.timestamp.desc()).all()
+    
+    # Verfügbare Schuljahre bestimmen
+    available_years = set()
+    for grade in all_grades:
+        grade_year = grade.timestamp.year
+        grade_month = grade.timestamp.month
+        
+        # Bestimme Schuljahr (September bis August)
+        if grade_month >= 9:  # Sep-Dez
+            school_year = f"{grade_year}/{str(grade_year + 1)[-2:]}"
+        else:  # Jan-Aug
+            school_year = f"{grade_year - 1}/{str(grade_year)[-2:]}"
+        
+        available_years.add(school_year)
+    
+    available_years = sorted(list(available_years), reverse=True)
+    
     # Parameter aus URL
     semester = int(request.args.get('semester', 2))  # Standard: 2. Halbjahr
-    school_year = request.args.get('school_year', '2025')
+    school_year = request.args.get('school_year', available_years[0] if available_years else '2024/25')
     
-    # Alle Noten des Users
-    all_grades = Grade.query.filter_by(user_id=current_user.id).all()
+    # Parse Schuljahr (z.B. "2024/25" -> 2024, 2025)
+    if '/' in school_year:
+        start_year, end_year_short = school_year.split('/')
+        start_year = int(start_year)
+        end_year = int('20' + end_year_short)
+    else:
+        # Fallback für alte Format
+        start_year = int(school_year)
+        end_year = start_year + 1
     
     # Filtere nach Halbjahr und Schuljahr
     semester_grades = []
     for grade in all_grades:
-        grade_year = str(grade.timestamp.year)
-        # Vereinfacht: 1. Halbjahr = Aug-Jan, 2. Halbjahr = Feb-Jul
-        grade_semester = 1 if grade.timestamp.month >= 8 or grade.timestamp.month <= 1 else 2
+        grade_year = grade.timestamp.year
+        grade_month = grade.timestamp.month
         
-        if grade_year == school_year and grade_semester == semester:
-            semester_grades.append(grade)
+        # Bestimme Schuljahr der Note
+        if grade_month >= 9:  # Sep-Dez
+            note_school_year_start = grade_year
+        else:  # Jan-Aug
+            note_school_year_start = grade_year - 1
+        
+        # Prüfe ob Note zum gewählten Schuljahr gehört
+        if note_school_year_start == start_year:
+            # Bestimme Halbjahr: 1. Halbjahr = Sep-Jan, 2. Halbjahr = Feb-Aug
+            if grade_month >= 9 or grade_month <= 1:
+                grade_semester = 1
+            else:
+                grade_semester = 2
+            
+            if grade_semester == semester:
+                semester_grades.append(grade)
     
     # Gruppiere nach Fach
     grades_by_subject = defaultdict(list)
@@ -176,14 +224,14 @@ def semester_grades():
         total_average = sum(g.grade for g in certificate_grades) / len(certificate_grades)
         total_average = round(total_average, 2)
     else:
-        total_average = 0
+        total_average = 0.00
     
-    # Gesamtdurchschnitt aller Noten
+    # Gesamtdurchschnitt aller Noten (alle Typen)
     if semester_grades:
         overall_average = sum(g.grade for g in semester_grades) / len(semester_grades)
         overall_average = round(overall_average, 2)
     else:
-        overall_average = 0
+        overall_average = 0.00
     
     return render_template("semester_grades.html",
                          grades_by_subject=dict(grades_by_subject),
@@ -193,6 +241,7 @@ def semester_grades():
                          total_average=total_average,
                          semester=semester,
                          school_year=school_year,
+                         available_years=available_years,
                          subjects=Config.SUBJECTS,
                          grades=semester_grades)
 
@@ -251,7 +300,15 @@ def add_certificate_grades():
             if grade_value:
                 try:
                     grade_value = float(grade_value)
+                    # Liste der erlaubten Notenwerte (1.0, 1.5, 2.0, usw.)
+                    valid_grades = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0]
+                    
                     if 1 <= grade_value <= 6:
+                        # Prüfe ob Note in 0.5er Schritten ist
+                        if grade_value not in valid_grades:
+                            flash(f"Bitte nur Noten in 0.5er Schritten eingeben für {subject_key} (1.0, 1.5, 2.0, ...)", "error")
+                            return redirect(url_for('grades.add_certificate_grades'))
+                            
                         # Prüfe ob bereits eine Zeugnisnote für dieses Fach existiert
                         existing_grade = Grade.query.filter_by(
                             user_id=current_user.id,

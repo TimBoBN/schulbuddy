@@ -43,6 +43,7 @@ coverage.xml
 # Virtual environments
 .env
 .venv
+.venv/
 env/
 venv/
 ENV/
@@ -93,7 +94,10 @@ dist/
 .idea/
 
 # Database
+# Instance folder
+instance/
 instance/*.db
+instance/schulbuddy.db
 *.db-journal
 
 # Flask session files
