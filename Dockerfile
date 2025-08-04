@@ -2,6 +2,9 @@
 ARG PYTHON_VERSION=3.11
 FROM --platform=$BUILDPLATFORM python:${PYTHON_VERSION}-slim as builder
 
+# Detaillierte Python-Version für Debugging ausgeben
+RUN python --version
+
 # GitHub-spezifische Labels
 LABEL org.opencontainers.image.source=https://github.com/TimBoBN/schulbuddy
 LABEL org.opencontainers.image.description="SchulBuddy - Eine Anwendung zur Schulnotenerfassung und -verwaltung"
@@ -45,6 +48,10 @@ FROM --platform=$TARGETPLATFORM python:${PYTHON_VERSION}-slim
 
 # ARGs für Multi-Platform-Build
 ARG TARGETPLATFORM
+ARG PYTHON_VERSION
+
+# Detaillierte Python-Version für Debugging ausgeben
+RUN python --version
 
 # Arbeitsverzeichnis setzen
 WORKDIR /app
@@ -58,9 +65,15 @@ RUN apt-get update && apt-get install -y curl && \
     fi && \
     rm -rf /var/lib/apt/lists/*
 
-# Python packages vom builder stage kopieren
-COPY --from=builder /usr/local/lib/python${PYTHON_VERSION}/site-packages/ /usr/local/lib/python${PYTHON_VERSION}/site-packages/
-COPY --from=builder /usr/local/bin/ /usr/local/bin/
+# Python packages vom builder stage kopieren - dynamische Python-Version ermitteln
+RUN python_versions="/usr/local/lib/python*" && \
+    echo "Available Python versions in /usr/local/lib/: $(ls -d $python_versions 2>/dev/null || echo 'None')" && \
+    PYTHON_MINOR=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))') && \
+    echo "Current Python version: $PYTHON_MINOR" && \
+    mkdir -p /usr/local/lib/python$PYTHON_MINOR/site-packages/
+
+# Site-packages und Binaries vom Builder kopieren - robustere Methode
+COPY --from=builder /usr/local/ /usr/local/
 
 # Stellen sicher, dass pip und setuptools auch in der finalen Phase aktualisiert sind
 RUN pip install --no-cache-dir --upgrade pip setuptools

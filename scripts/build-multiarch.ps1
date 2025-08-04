@@ -26,8 +26,34 @@ docker buildx build `
   --progress=plain `
   --push `
   --build-arg BUILDKIT_INLINE_CACHE=1 `
+  --build-arg PYTHON_VERSION=3.11 `
   --cache-from=type=registry,ref=timbobn/schulbuddy:buildcache `
   --cache-to=type=registry,ref=timbobn/schulbuddy:buildcache,mode=max `
   .
 
-Write-Host "✅ Done building multi-architecture images!"
+# Erfolgreicher Build oder Fehlerfall
+if ($LASTEXITCODE -eq 0) {
+  Write-Host "✅ Done building multi-architecture images!"
+} else {
+  Write-Host "❌ Build failed. Trying to clear cache and build again..."
+  docker buildx prune -f
+  
+  Write-Host "🔄 Rebuilding after cache purge..."
+  docker buildx build `
+    --platform=$PLATFORMS `
+    --tag "timbobn/schulbuddy:$TAG" `
+    --tag "ghcr.io/timbobn/schulbuddy:$TAG" `
+    --progress=plain `
+    --push `
+    --build-arg BUILDKIT_INLINE_CACHE=1 `
+    --build-arg PYTHON_VERSION=3.11 `
+    --no-cache `
+    .
+    
+  if ($LASTEXITCODE -eq 0) {
+    Write-Host "✅ Build successful after cache purge!"
+  } else {
+    Write-Host "❌ Build failed even after cache purge. Please check the errors above."
+    exit 1
+  }
+}

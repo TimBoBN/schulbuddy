@@ -82,7 +82,13 @@ Für optimale Performance auf ARM-Geräten empfehlen wir:
    - Problem: `ERROR: failed to build: failed to solve: process "/dev/.buildkit_qemu_emulator /bin/sh -c ..."` 
    - Lösung: Wir haben das Dockerfile optimiert, um BuildKit-ARGs wie BUILDPLATFORM und TARGETPLATFORM zu nutzen
    - Bei lokalen Builds: Stelle sicher, dass du den neuesten QEMU verwendest (`docker run --privileged --rm tonistiigi/binfmt --install all`)
-   - Wenn der Fehler weiterhin auftritt, versuche `docker buildx prune` um den Build-Cache zu leeren
+   - Wenn der Fehler weiterhin auftritt, versuche `docker buildx prune -f` um den Build-Cache zu leeren
+
+3. **Failed to calculate checksum / site-packages nicht gefunden**
+   - Problem: `ERROR: failed to build: failed to solve: failed to compute cache key: failed to calculate checksum of ref: "/usr/local/lib/python3.11.13/site-packages": not found`
+   - Lösung: Wir haben das Dockerfile angepasst, um die Python-Version dynamisch zu ermitteln und eine robustere Kopiermethode zu verwenden
+   - Bei lokalen Builds: Füge das Flag `--no-cache` hinzu, um den Cache zu umgehen: `docker buildx build --no-cache ...`
+   - Unsere Build-Skripte versuchen automatisch einen erneuten Build ohne Cache bei Fehlern
 
 2. **Performance-Probleme auf ARM**
    - Einige Python-Pakete benötigen mehr Ressourcen auf ARM
