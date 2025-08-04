@@ -58,11 +58,12 @@ jobs:
           echo "Verifying QEMU installations:"
           ls -la /proc/sys/fs/binfmt_misc/
           
-      # Zwei-stufiger Build-Prozess: Zuerst AMD64, dann ARM
+      # Zwei-stufiger Build-Prozess mit separaten Dockerfiles
       - name: Build and Push AMD64 Image
         uses: docker/build-push-action@v4
         with:
           context: .
+          file: ./Dockerfile
           push: true
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}-amd64
@@ -75,6 +76,7 @@ jobs:
         continue-on-error: true  # Erlaubt Fortfahren auch bei ARM-Fehlern
         with:
           context: .
+          file: ./Dockerfile.arm
           push: true
           platforms: linux/arm64,linux/arm/v7
           tags: ${{ steps.meta.outputs.tags }}-arm

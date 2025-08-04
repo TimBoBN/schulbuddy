@@ -1,4 +1,4 @@
-# SchulBuddy Dockerfile - Vereinfachter Build
+# SchulBuddy Dockerfile für ARM-Architekturen
 # Feste Python-Version 3.11.7
 FROM python:3.11.7-slim as builder
 
@@ -11,13 +11,13 @@ LABEL org.opencontainers.image.licenses=MIT
 WORKDIR /app
 
 # Requirements kopieren
-COPY requirements.txt ./
+COPY requirements-arm.txt ./
 
-# Basis-Dependencies installieren
+# ARM-spezifische Dependencies installieren
 RUN apt-get update && \
-    apt-get install -y gcc g++ make && \
+    apt-get install -y gcc g++ make libblas-dev liblapack-dev libatlas-base-dev gfortran && \
     pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements-arm.txt && \
     rm -rf /var/lib/apt/lists/*
 
 # Production Stage
@@ -26,9 +26,9 @@ FROM python:3.11.7-slim
 # Arbeitsverzeichnis setzen
 WORKDIR /app
 
-# Basis-System-Dependencies installieren
+# ARM-spezifische Pakete installieren
 RUN apt-get update && \
-    apt-get install -y curl && \
+    apt-get install -y curl libatlas-base-dev libopenblas-base && \
     mkdir -p /usr/local/lib/python3.11/site-packages/ && \
     rm -rf /var/lib/apt/lists/*
 
@@ -45,7 +45,7 @@ COPY . .
 RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
-echo "🚀 Starting SchulBuddy Container..."\n\
+echo "🚀 Starting SchulBuddy Container on ARM..."\n\
 \n\
 # Verzeichnisse erstellen\n\
 mkdir -p /app/data /app/static/uploads\n\
@@ -61,8 +61,9 @@ if [ ! -f "/app/data/schulbuddy.db" ]; then\n\
     python /app/init_db.py\n\
 fi\n\
 \n\
-# Standard-Architektur (AMD64)\n\
-echo "🎓 Starting SchulBuddy with Gunicorn on port $PORT..."\n\
+# App starten mit angepasster Worker-Anzahl für ARM\n\
+echo "🎓 Starting SchulBuddy with Gunicorn on ARM architecture (port $PORT)..."\n\
+export GUNICORN_WORKERS=2\n\
 exec gunicorn --config gunicorn.conf.py wsgi:application\n\
 ' > entrypoint.sh && chmod +x entrypoint.sh
 
