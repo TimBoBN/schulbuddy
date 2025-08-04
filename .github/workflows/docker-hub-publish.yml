@@ -37,20 +37,12 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             # Manueller Trigger - verwende Input
             echo "VERSION=${{ github.event.inputs.version_tag }}" >> $GITHUB_OUTPUT
-            # Wenn ein Versions-Tag angegeben wurde, auch als latest markieren
-            if [[ "${{ github.event.inputs.version_tag }}" == v* || "${{ github.event.inputs.version_tag }}" == "latest" ]]; then
-              echo "UPDATE_LATEST=true" >> $GITHUB_OUTPUT
-            else
-              echo "UPDATE_LATEST=false" >> $GITHUB_OUTPUT
-            fi
           elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             # Tag-Push - verwende Tag
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-            echo "UPDATE_LATEST=true" >> $GITHUB_OUTPUT
           else
             # Fallback
             echo "VERSION=latest" >> $GITHUB_OUTPUT
-            echo "UPDATE_LATEST=true" >> $GITHUB_OUTPUT
           fi
       
       - name: Build and Push Docker Image
@@ -60,6 +52,6 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
-            ${{ steps.vars.outputs.UPDATE_LATEST == 'true' && format('{0}/schulbuddy:latest', secrets.DOCKERHUB_USERNAME) || '' }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
