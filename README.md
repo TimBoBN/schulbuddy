@@ -195,7 +195,8 @@ Die Anwendung unterstützt flexible Port-Konfiguration:
 
 ## 📖 Erweiterte Dokumentation
 
-- [📚 Docker-Anleitung](docs/DOCKER_README.md)
+- [� Sicherheitsrichtlinie & CVE-Übersicht](SECURITY.md)
+- [�📚 Docker-Anleitung](docs/DOCKER_README.md)
 - [🔧 Setup-Anleitung](docs/SETUP_README.md)
 - [🌐 Port-Konfiguration](docs/PORT_CONFIG.md)
 
