@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📝 Dokumentation
+    url: https://github.com/TimBoBN/schulbuddy/blob/main/README.md
+    about: Sieh dir unsere Dokumentation an, bevor du ein Issue erstellst
+  - name: 🔒 Sicherheitslücke melden
+    url: https://github.com/TimBoBN/schulbuddy/blob/main/SECURITY.md
+    about: Bitte melde Sicherheitslücken gemäß unserer Security Policy
