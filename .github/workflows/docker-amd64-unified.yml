@@ -46,21 +46,37 @@ jobs:
       - name: Extract Version and Owner
         id: vars
         run: |
+          # Debug-Informationen
+          echo "GitHub Event: ${{ github.event_name }}"
+          echo "GitHub Ref: ${{ github.ref }}"
+          
           # Extrahiere Version
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             # Manueller Trigger - verwende Input
-            echo "VERSION=${{ github.event.inputs.version_tag }}" >> $GITHUB_OUTPUT
+            VERSION="${{ github.event.inputs.version_tag }}"
+            echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+            echo "Manuelle Version: ${VERSION}"
           elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             # Tag-Push - verwende Tag
-            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+            echo "Tag-basierte Version: ${VERSION}"
           else
             # Branch-Push - verwende Branch-Namen
-            BRANCH=${GITHUB_REF#refs/heads/}
-            echo "VERSION=${BRANCH}-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+            VERSION="${BRANCH}-${TIMESTAMP}"
+            echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+            echo "Branch-basierte Version: ${VERSION} (Branch: ${BRANCH})"
           fi
           
           # Repository Owner in Kleinbuchstaben
-          echo "OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "OWNER=${OWNER}" >> $GITHUB_OUTPUT
+          echo "Repository Owner: ${OWNER}"
+          
+          # Finale Ausgabe
+          echo "Finaler Image-Tag für AMD64: ${VERSION}-amd64"
       
       # Vorbereiten der Build-Umgebung für bessere Kompatibilität
       - name: Set up BuildKit Cache
@@ -95,40 +111,79 @@ jobs:
             org.opencontainers.image.created=${{ github.event.repository.created_at }}
             org.opencontainers.image.revision=${{ github.sha }}
       
-      # Tag-Handling für Docker Hub
+      # Tag-Handling für Docker Hub mit Debug-Ausgabe
       - name: Tag DockerHub Images
         if: success()
         run: |
+          # Debug-Ausgabe der verfügbaren Images
+          echo "Verfügbare Docker Images:"
+          docker images
+          echo "Verwendete Version: ${{ steps.vars.outputs.VERSION }}"
+          echo "GitHub Ref: ${{ github.ref }}"
+          
           # Latest-Tag für main/tags/workflow_dispatch
           if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == refs/tags/v* || "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.version_tag }}" != "dev" ]]; then
-            docker tag ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest-amd64
-            docker push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest-amd64
+            # Überprüfen, ob das Quell-Image existiert
+            if docker inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 &>/dev/null; then
+              echo "Tagging für DockerHub: latest-amd64"
+              docker tag ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest-amd64
+              docker push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest-amd64
+            else
+              echo "WARNING: Das Quell-Image für DockerHub existiert nicht: ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64"
+            fi
             
             # Auch für GitHub Container Registry
-            docker tag ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:latest-amd64
-            docker push ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:latest-amd64
+            if docker inspect ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 &>/dev/null; then
+              echo "Tagging für GHCR: latest-amd64"
+              docker tag ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:latest-amd64
+              docker push ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:latest-amd64
+            else
+              echo "WARNING: Das Quell-Image für GHCR existiert nicht: ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64"
+            fi
           fi
           
           # Dev-Tag für dev Branch
           if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
-            docker tag ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev-amd64
-            docker push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev-amd64
+            # Überprüfen, ob das Quell-Image existiert
+            if docker inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 &>/dev/null; then
+              echo "Tagging für DockerHub: dev-amd64"
+              docker tag ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev-amd64
+              docker push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev-amd64
+            else
+              echo "WARNING: Das Quell-Image für DockerHub existiert nicht: ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64"
+            fi
             
             # Auch für GitHub Container Registry
-            docker tag ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:dev-amd64
-            docker push ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:dev-amd64
+            if docker inspect ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 &>/dev/null; then
+              echo "Tagging für GHCR: dev-amd64"
+              docker tag ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:dev-amd64
+              docker push ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:dev-amd64
+            else
+              echo "WARNING: Das Quell-Image für GHCR existiert nicht: ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64"
+            fi
           fi
       
       # Versionstagless-Images für DockerHub erstellen
       - name: Create Version Image for DockerHub
         if: success()
         run: |
-          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
+          # Überprüfen, ob das Quell-Image existiert
+          if docker inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 &>/dev/null; then
+            echo "Creating version tag for DockerHub"
+            docker tag ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
+          else
+            echo "WARNING: Das Quell-Image für DockerHub existiert nicht: ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64"
+          fi
           
           # Auch für GitHub Container Registry
-          docker tag ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
-          docker push ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
+          if docker inspect ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 &>/dev/null; then
+            echo "Creating version tag for GHCR"
+            docker tag ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
+            docker push ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
+          else
+            echo "WARNING: Das Quell-Image für GHCR existiert nicht: ghcr.io/${{ steps.vars.outputs.OWNER }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64"
+          fi
 
       # Cache aktualisieren für nächsten Lauf
       - name: Move cache
