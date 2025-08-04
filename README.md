@@ -80,6 +80,7 @@ docker pull ghcr.io/timbobn/schulbuddy:v1.2.3
 curl -O https://raw.githubusercontent.com/TimBoBN/schulbuddy/main/docker-compose.yml
 
 # Oder das Repository klonen für alle Konfigurationen
+
 git clone https://github.com/TimBoBN/schulbuddy.git
 cd schulbuddy
 ```
