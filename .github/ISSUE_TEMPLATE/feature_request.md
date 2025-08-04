@@ -1,9 +1,10 @@
 ---
-name: 💡 Feature Request
+name: "\U0001F4A1 Feature Request"
 about: Schlage eine neue Funktion oder Verbesserung für SchulBuddy vor
 title: "[FEATURE] "
 labels: enhancement
-assignees: ''
+assignees: TimBoBN
+
 ---
 
 ## 💡 Funktionsbeschreibung
