@@ -8,15 +8,23 @@ on:
         description: 'Version tag für das Docker Image (z.B. v1.1.0, dev)'
         required: true
         default: 'arm-latest'
+      build_type:
+        description: 'Build-Typ (release, dev)'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - dev
 
-  # Nur ausführen, wenn die ARM_BUILD.md-Datei oder das Dockerfile.arm geändert wurde
+  # Nur ausführen, wenn ARM-spezifische Dateien geändert wurden
   push:
     branches: [ main, dev ]
     paths:
-      - 'Dockerfile.arm'
-      - 'ARM_SUPPORT.md'
-      - 'requirements-arm.txt'
-      - '.github/workflows/docker-arm-build.yml'
+      - '**/Dockerfile.arm'
+      - '**/ARM_SUPPORT.md'
+      - '**/requirements-arm.txt'
+      - '**/.github/workflows/docker-arm-build.yml'
 
 jobs:
   arm-docker-build:
@@ -24,8 +32,18 @@ jobs:
     timeout-minutes: 120  # Erhöhter Timeout speziell für ARM-Builds
     
     steps:
+      - name: Debug workflow trigger
+        run: |
+          echo "Workflow triggered!"
+          echo "Event: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "SHA: ${{ github.sha }}"
+          echo "Path filters active on: Dockerfile.arm, ARM_SUPPORT.md, requirements-arm.txt, .github/workflows/docker-arm-build.yml"
+      
       - name: Checkout Repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Kompletter Verlauf für bessere Debugging-Informationen
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -43,20 +61,39 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Extract Version
+      - name: Extract Version and Debug Info
         id: vars
         run: |
+          # Debug Informationen ausgeben
+          echo "GitHub event: ${{ github.event_name }}"
+          echo "GitHub ref: ${{ github.ref }}"
+          echo "Changed files:" 
+          git diff --name-only ${{ github.event.before }} ${{ github.event.after }} || echo "Could not determine changed files"
+          
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             # Manueller Trigger - verwende Input
             echo "VERSION=${{ github.event.inputs.version_tag }}" >> $GITHUB_OUTPUT
+            echo "BUILD_TYPE=${{ github.event.inputs.build_type }}" >> $GITHUB_OUTPUT
+            echo "Using manual version: ${{ github.event.inputs.version_tag }}"
           else
             # Branch-Push - verwende Branch-Namen
             BRANCH=${GITHUB_REF#refs/heads/}
-            echo "VERSION=${BRANCH}-arm-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+            VERSION="${BRANCH}-arm-$(date +'%Y%m%d%H%M%S')"
+            echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+            
+            if [[ "$BRANCH" == "main" ]]; then
+              echo "BUILD_TYPE=release" >> $GITHUB_OUTPUT
+            else
+              echo "BUILD_TYPE=dev" >> $GITHUB_OUTPUT
+            fi
+            
+            echo "Using generated version: ${VERSION}"
           fi
           
           # Repository Owner in Kleinbuchstaben
-          echo "OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "OWNER=${OWNER}" >> $GITHUB_OUTPUT
+          echo "Repository owner: ${OWNER}"
       
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
