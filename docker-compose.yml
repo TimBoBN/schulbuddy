@@ -1,6 +1,9 @@
 services:
   schulbuddy:
-    build: .
+    # Docker Hub Image
+    image: timbobn/schulbuddy:${TAG:-latest}
+    # Für GitHub Container Registry (GHCR), kommentiere die obere Zeile aus und verwende stattdessen:
+    # image: ghcr.io/timbobn/schulbuddy:${TAG:-latest}
     container_name: schulbuddy-app
     ports:
       - "${EXTERNAL_PORT:-5000}:${PORT:-5000}"

@@ -48,6 +48,34 @@ cd schulbuddy
 bash scripts/setup-env.sh
 ```
 
+### Docker Images
+
+Es stehen vorgefertigte Docker Images zur Verfügung:
+
+**Docker Hub**:
+```bash
+# Produktion (latest)
+docker pull timbobn/schulbuddy:latest
+
+# Entwicklung
+docker pull timbobn/schulbuddy:dev
+
+# Spezifische Version
+docker pull timbobn/schulbuddy:v1.2.3
+```
+
+**GitHub Container Registry (GHCR)**:
+```bash
+# Produktion (latest)
+docker pull ghcr.io/timbobn/schulbuddy:latest
+
+# Entwicklung
+docker pull ghcr.io/timbobn/schulbuddy:dev
+
+# Spezifische Version
+docker pull ghcr.io/timbobn/schulbuddy:v1.2.3
+```
+
 ### 3. Anwendung starten
 ```bash
 # Mit Makefile (empfohlen)
@@ -55,6 +83,18 @@ make install
 
 # Oder manuell
 docker-compose up --build -d
+
+# Verwendung spezifischer Tags
+# Produktion
+TAG=latest docker-compose up -d
+
+# Entwicklung
+TAG=dev docker-compose up -d
+
+# Spezifische Version
+TAG=v1.2.3 docker-compose up -d
+
+# Für GHCR muss die image: Zeile in docker-compose.yml angepasst werden
 ```
 
 ### 4. Anwendung aufrufen
