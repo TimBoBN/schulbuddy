@@ -30,6 +30,9 @@ jobs:
   arm-docker-build:
     runs-on: ubuntu-latest
     timeout-minutes: 120  # Erhöhter Timeout speziell für ARM-Builds
+    permissions:
+      contents: read
+      packages: write  # Wichtig für GHCR Push-Zugriff
     
     steps:
       - name: Debug workflow trigger
@@ -58,8 +61,9 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+        # GITHUB_TOKEN bekommt seine Berechtigungen von der 'permissions' Konfiguration im Job
       
       - name: Extract Version and Debug Info
         id: vars
@@ -67,6 +71,10 @@ jobs:
           # Debug Informationen ausgeben
           echo "GitHub event: ${{ github.event_name }}"
           echo "GitHub ref: ${{ github.ref }}"
+          echo "GitHub actor: ${{ github.actor }}"
+          echo "GitHub repository: ${{ github.repository }}"
+          echo "GitHub repository owner: ${{ github.repository_owner }}"
+          echo "GitHub token permissions: write:packages=${{ contains(github.token_permissions, 'write:packages') }}"
           echo "Changed files:" 
           git diff --name-only ${{ github.event.before }} ${{ github.event.after }} || echo "Could not determine changed files"
           
