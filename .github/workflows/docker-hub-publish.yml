@@ -46,6 +46,9 @@ jobs:
             echo "VERSION=${BRANCH}-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
           fi
       
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
         with:
@@ -60,5 +63,9 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.created=${{ github.event.repository.created_at }}
             org.opencontainers.image.revision=${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:buildcache
+            type=gha
+          cache-to: |
+            type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:buildcache,mode=max
+            type=gha,mode=max

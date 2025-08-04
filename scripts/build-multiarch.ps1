@@ -17,14 +17,16 @@ if (-not $args[0]) {
 
 Write-Host "🏷️ Using tag: $TAG"
 
-# Lokale Image-Registry für Tests (optional)
+# Docker Desktop enthält bereits QEMU für cross-platform emulation
 Write-Host "🔄 Building multi-architecture images for $PLATFORMS..."
 docker buildx build `
   --platform=$PLATFORMS `
   --tag "timbobn/schulbuddy:$TAG" `
   --tag "ghcr.io/timbobn/schulbuddy:$TAG" `
   --progress=plain `
-  --load `
+  --push `
+  --cache-from=type=registry,ref=timbobn/schulbuddy:buildcache `
+  --cache-to=type=registry,ref=timbobn/schulbuddy:buildcache,mode=max `
   .
 
 Write-Host "✅ Done building multi-architecture images!"

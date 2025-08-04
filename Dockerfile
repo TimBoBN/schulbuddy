@@ -9,10 +9,33 @@ LABEL org.opencontainers.image.licenses=MIT
 # Arbeitsverzeichnis setzen
 WORKDIR /app
 
-# Requirements kopieren und installieren
-COPY requirements.txt .
-RUN pip install --user --no-cache-dir --upgrade pip setuptools && \
-    pip install --user --no-cache-dir -r requirements.txt
+# System-Dependencies für den Builder installieren
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Requirements kopieren
+COPY requirements.txt requirements-arm.txt ./
+
+# Unterschiedliche Installation je nach Architektur
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    # ARM-spezifische Optimierungen
+    if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "armv7l" ]; then \
+        apt-get update && \
+        apt-get install -y --no-install-recommends \
+            libblas-dev \
+            liblapack-dev \
+            libatlas-base-dev \
+            libopenblas-dev \
+            gfortran \
+            && rm -rf /var/lib/apt/lists/* \
+            # Verwende die ARM-optimierten Requirements
+            && pip install --no-cache-dir -r requirements-arm.txt; \
+    else \
+        pip install --no-cache-dir -r requirements.txt; \
+    fi
 
 # Production Stage
 FROM python:3.11-slim
@@ -22,16 +45,18 @@ WORKDIR /app
 
 # System-Dependencies installieren (für eventuelle native Extensions)
 RUN apt-get update && apt-get install -y \
-    gcc \
     curl \
-    # ARM-spezifische Optimierungen 
+    # ARM-spezifische Optimierungen und Runtime-Dependencies
     && if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "armv7l" ]; then \
-       apt-get install -y --no-install-recommends libblas-dev liblapack-dev libatlas-base-dev; \
+       apt-get install -y --no-install-recommends \
+         libatlas-base-dev \
+         libopenblas-base; \
     fi \
     && rm -rf /var/lib/apt/lists/*
 
-# Python packages von builder stage kopieren
-COPY --from=builder /root/.local /usr/local
+# Python packages von builder stage kopieren (Site-packages)
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Stellen sicher, dass pip und setuptools auch in der finalen Phase aktualisiert sind
 RUN pip install --no-cache-dir --upgrade pip setuptools
@@ -63,8 +88,15 @@ if [ ! -f "/app/data/schulbuddy.db" ]; then\n\
     python /app/init_db.py\n\
 fi\n\
 \n\
-# App starten\n\
-echo "🎓 Starting SchulBuddy with Gunicorn on port $PORT..."\n\
+# App starten mit angepasster Worker-Anzahl je nach Architektur\n\
+if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "armv7l" ]; then\n\
+    # ARM-Architektur: weniger Worker\n\
+    echo "🎓 Starting SchulBuddy with Gunicorn on ARM architecture (port $PORT)..."\n\
+    export GUNICORN_WORKERS=2\n\
+else\n\
+    # Standard-Architektur\n\
+    echo "🎓 Starting SchulBuddy with Gunicorn on port $PORT..."\n\
+fi\n\
 exec gunicorn --config gunicorn.conf.py wsgi:application\n\
 ' > entrypoint.sh && chmod +x entrypoint.sh
 

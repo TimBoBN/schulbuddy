@@ -77,6 +77,11 @@ Für optimale Performance auf ARM-Geräten empfehlen wir:
 1. **Fehler "no matching manifest for linux/arm64/v8"**
    - Lösung: Verwende einen aktualisierten Docker-Client (20.10.0+)
    - Überprüfe mit `docker version`, dass Client und Server aktuell sind
+   
+2. **BuildX-Fehler mit pip install**
+   - Problem: `ERROR: failed to build: failed to solve: process "/dev/.buildkit_qemu_emulator /bin/sh -c pip install..." did not complete successfully`
+   - Lösung: Wir haben spezielle ARM-Optimierungen im Dockerfile implementiert
+   - Bei lokalen Builds: Stelle sicher, dass du den neuesten QEMU verwendest (`docker run --privileged --rm tonistiigi/binfmt --install all`)
 
 2. **Performance-Probleme auf ARM**
    - Einige Python-Pakete benötigen mehr Ressourcen auf ARM

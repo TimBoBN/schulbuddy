@@ -18,14 +18,20 @@ fi
 
 echo "🏷️ Using tag: $TAG"
 
-# Lokale Image-Registry für Tests (optional)
+# Emulation für fremde Architekturen sicherstellen
+echo "🧩 Setting up QEMU for cross-platform emulation..."
+docker run --privileged --rm tonistiigi/binfmt --install all
+
+# Build mit verbessertem Caching
 echo "🔄 Building multi-architecture images for $PLATFORMS..."
 docker buildx build \
   --platform=$PLATFORMS \
   --tag "timbobn/schulbuddy:$TAG" \
   --tag "ghcr.io/timbobn/schulbuddy:$TAG" \
   --progress=plain \
-  --load \
+  --push \
+  --cache-from=type=registry,ref=timbobn/schulbuddy:buildcache \
+  --cache-to=type=registry,ref=timbobn/schulbuddy:buildcache,mode=max \
   .
 
 echo "✅ Done building multi-architecture images!"
