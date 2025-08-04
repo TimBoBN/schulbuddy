@@ -1,0 +1,65 @@
+name: Docker Hub Publish
+
+on:
+  # Läuft, wenn ein neuer Tag gepusht wird, der mit 'v' beginnt
+  push:
+    tags:
+      - 'v*'
+  
+  # Manueller Trigger über die GitHub UI
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Version tag für das Docker Image (z.B. v1.1.0)'
+        required: true
+        default: 'latest'
+
+jobs:
+  docker-hub-publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Extract Version
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Manueller Trigger - verwende Input
+            echo "VERSION=${{ github.event.inputs.version_tag }}" >> $GITHUB_OUTPUT
+            # Wenn ein Versions-Tag angegeben wurde, auch als latest markieren
+            if [[ "${{ github.event.inputs.version_tag }}" == v* || "${{ github.event.inputs.version_tag }}" == "latest" ]]; then
+              echo "UPDATE_LATEST=true" >> $GITHUB_OUTPUT
+            else
+              echo "UPDATE_LATEST=false" >> $GITHUB_OUTPUT
+            fi
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Tag-Push - verwende Tag
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            echo "UPDATE_LATEST=true" >> $GITHUB_OUTPUT
+          else
+            # Fallback
+            echo "VERSION=latest" >> $GITHUB_OUTPUT
+            echo "UPDATE_LATEST=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
+            ${{ steps.vars.outputs.UPDATE_LATEST == 'true' && format('{0}/schulbuddy:latest', secrets.DOCKERHUB_USERNAME) || '' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
