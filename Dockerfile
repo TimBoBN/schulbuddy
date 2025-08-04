@@ -1,6 +1,11 @@
 # SchulBuddy Dockerfile - Multi-stage build für optimale Performance
 FROM python:3.11-slim as builder
 
+# GitHub-spezifische Labels
+LABEL org.opencontainers.image.source=https://github.com/TimBoBN/schulbuddy
+LABEL org.opencontainers.image.description="SchulBuddy - Eine Anwendung zur Schulnotenerfassung und -verwaltung"
+LABEL org.opencontainers.image.licenses=MIT
+
 # Arbeitsverzeichnis setzen
 WORKDIR /app
 
