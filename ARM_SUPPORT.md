@@ -22,8 +22,9 @@ Aufgrund von Build-Zeit- und Kompatibilitätsüberlegungen haben die ARM-basiert
    - Komplexere PDF-Generierungen könnten fehlschlagen
 
 3. **Pillow-Unterstützung**:
-   - Pillow wird mit Grundfunktionalität unterstützt
-   - Für die ARM-Version wurden zusätzliche Abhängigkeiten hinzugefügt, um die Kompatibilität zu verbessern
+   - Pillow wird mit Grundfunktionalität unterstützt (Version 9.5.0)
+   - Für die ARM-Version wurden spezifische Abhängigkeiten hinzugefügt
+   - Möglicherweise sind fortgeschrittene Bildbearbeitungsfunktionen eingeschränkt
 
 ## Empfohlene Verwendung
 
