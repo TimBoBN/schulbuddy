@@ -83,7 +83,8 @@ jobs:
           echo "OWNER=${OWNER}" >> $GITHUB_OUTPUT
           echo "Repository owner: ${OWNER}"
       
-      - name: Build and Push True Multi-Platform Images
+      - name: Build and Push Primary Tags (latest/dev)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -95,16 +96,15 @@ jobs:
           cache-to: |
             type=gha,scope=multiplatform-build,mode=max
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}
-            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ github.ref == 'refs/heads/main' && 'latest' || 'dev' }}
+            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ github.ref == 'refs/heads/main' && 'latest' || 'dev' }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.created=${{ github.event.repository.created_at }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.description=SchulBuddy Multi-Platform (AMD64/ARM64/ARMv7)
       
-      - name: Create Branch-specific Tags
-        if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+      - name: Build and Push Secondary Version Tags
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -114,8 +114,8 @@ jobs:
           cache-from: |
             type=gha,scope=multiplatform-build
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ github.ref == 'refs/heads/main' && 'latest' || 'dev' }}
-            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ github.ref == 'refs/heads/main' && 'latest' || 'dev' }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}
+            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.created=${{ github.event.repository.created_at }}
@@ -126,20 +126,20 @@ jobs:
         run: |
           echo "🔍 Verifying Multi-Platform Build..."
           
-          # Inspiziere die erstellten Multi-Platform Images
-          echo "📦 Version-specific Image:"
-          docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }} || echo "Version manifest not ready yet"
-          
-          # Inspiziere Branch-specific Images falls vorhanden
+          # Primäre Tags zuerst (latest/dev haben Priorität)
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "📦 Latest Image:"
+            echo "📦 PRIMARY: Latest Image:"
             docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest || echo "Latest manifest not ready yet"
           fi
           
           if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
-            echo "📦 Dev Image:"
+            echo "📦 PRIMARY: Dev Image:"
             docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev || echo "Dev manifest not ready yet"
           fi
+          
+          # Sekundäre Version-specific Tags
+          echo "📦 SECONDARY: Version-specific Image:"
+          docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }} || echo "Version manifest not ready yet"
           
           echo "✅ Multi-Platform Build verification completed!"
       - name: Summary
@@ -149,23 +149,31 @@ jobs:
           echo "=============================="
           echo "Version: ${{ steps.meta.outputs.VERSION }}"
           echo ""
-          echo "🐳 Verfügbare Multi-Platform Images:"
-          echo "• docker.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}"
-          echo "• ghcr.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}"
+          echo "🐳 PRIMARY Multi-Platform Images (höchste Priorität):"
           
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "• docker.io/timbobn/schulbuddy:latest"
-            echo "• ghcr.io/timbobn/schulbuddy:latest"
+            echo "• docker.io/timbobn/schulbuddy:latest 🏆"
+            echo "• ghcr.io/timbobn/schulbuddy:latest 🏆"
           fi
           
           if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
-            echo "• docker.io/timbobn/schulbuddy:dev"
-            echo "• ghcr.io/timbobn/schulbuddy:dev"
+            echo "• docker.io/timbobn/schulbuddy:dev 🏆"
+            echo "• ghcr.io/timbobn/schulbuddy:dev 🏆"
           fi
           
           echo ""
-          echo "🧪 Test Commands:"
-          echo "docker manifest inspect docker.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}"
-          echo "docker pull docker.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}"
+          echo "🐳 SECONDARY Multi-Platform Images (Versions-Tags):"
+          echo "• docker.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}"
+          echo "• ghcr.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}"
+          
           echo ""
-          echo "✅ Multi-Platform Build completed!"
+          echo "🧪 Test Commands (Empfohlene Reihenfolge):"
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "docker pull docker.io/timbobn/schulbuddy:latest  # PRIMÄR"
+          fi
+          if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            echo "docker pull docker.io/timbobn/schulbuddy:dev    # PRIMÄR"
+          fi
+          echo "docker pull docker.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}  # SEKUNDÄR"
+          echo ""
+          echo "✅ Multi-Platform Build completed mit Priorität auf latest/dev Tags!"
