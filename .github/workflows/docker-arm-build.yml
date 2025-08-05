@@ -178,31 +178,83 @@ jobs:
             # Entferne existierende Manifeste falls vorhanden
             docker manifest rm ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }} 2>/dev/null || true
             
-            # Version-spezifisches Manifest erstellen
+            # Version-spezifisches Manifest erstellen (Multi-Arch)
+            echo "Erstelle Multi-Arch Manifest für Version: ${{ steps.vars.outputs.VERSION }}"
             docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }} \
               ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
               ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
             
+            # Inspiziere das Manifest um Architekturen zu zeigen
+            docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
             docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
             
             # Latest-Tag für main-Branch oder spezielle manuelle Ausführung
             if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.version_tag }}" == "latest" ]]; then
-              echo "Erstelle latest Multi-Arch Manifest"
+              echo "Erstelle latest Multi-Arch Manifest (AMD64 + ARM)"
               docker manifest rm ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest 2>/dev/null || true
               docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest \
                 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
                 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
+              
+              # Zeige die verfügbaren Architekturen
+              echo "Latest Manifest enthält folgende Architekturen:"
+              docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest
               docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest
+              
+              echo "✅ Multi-Arch Image 'latest' erfolgreich erstellt!"
+              echo "Nutzer können jetzt 'docker pull ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest' verwenden"
+              echo "Docker wird automatisch die richtige Architektur (AMD64/ARM) auswählen"
             fi
             
             # Dev-Tag für dev-Branch
             if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
-              echo "Erstelle dev Multi-Arch Manifest"
+              echo "Erstelle dev Multi-Arch Manifest (Docker Hub)"
               docker manifest rm ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev 2>/dev/null || true
               docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev \
                 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
                 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
+              
+              docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev
               docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev
+              
+              echo "Erstelle dev Multi-Arch Manifest (GHCR)"
+              docker manifest rm ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:dev 2>/dev/null || true
+              docker manifest create ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:dev \
+                ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
+                ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
+              
+              docker manifest inspect ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:dev
+              docker manifest push ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:dev
+              
+              echo "✅ Dev Multi-Arch Images (Docker Hub + GHCR) erfolgreich erstellt!"
+            fi
+            
+            # GitHub Container Registry: Multi-Arch Manifeste erstellen
+            echo "Erstelle Multi-Arch Manifeste für GitHub Container Registry"
+            
+            # Version-spezifisches Manifest für GHCR
+            docker manifest create ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:${{ steps.vars.outputs.VERSION }} \
+              ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
+              ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
+            
+            echo "GHCR Version Manifest Architekturen:"
+            docker manifest inspect ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
+            docker manifest push ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
+            
+            # Latest für main oder manuelle Auslösung (GHCR)
+            if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.version_tag }}" == "latest" ]]; then
+              echo "Erstelle latest Multi-Arch Manifest für GHCR"
+              docker manifest rm ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:latest 2>/dev/null || true
+              docker manifest create ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:latest \
+                ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
+                ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
+              
+              echo "GHCR Latest Manifest Architekturen:"
+              docker manifest inspect ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:latest
+              docker manifest push ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:latest
+              
+              echo "✅ GHCR Multi-Arch Image 'latest' erfolgreich erstellt!"
+              echo "Nutzer können jetzt 'docker pull ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/schulbuddy:latest' verwenden"
             fi
           else
             echo "AMD64 Images nicht gefunden - nur ARM-Images veröffentlicht"

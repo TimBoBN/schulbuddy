@@ -44,5 +44,17 @@ touch /app/data/test.db
 ls -la /app/data/
 echo "SQLite file creation test successful"
 
-echo "🎓 Starting SchulBuddy application..."
-exec python /app/app.py
+# Erkenne Architektur und setze entsprechende Gunicorn-Konfiguration
+ARCH=$(uname -m)
+if [[ "$ARCH" == "arm"* || "$ARCH" == "aarch"* ]]; then
+    echo "🎓 Starting SchulBuddy with Gunicorn on ARM architecture (port ${PORT:-5000})..."
+    export GUNICORN_WORKERS=${GUNICORN_WORKERS:-2}  # ARM: weniger Worker für bessere Stabilität
+else
+    echo "🎓 Starting SchulBuddy with Gunicorn on AMD64 architecture (port ${PORT:-5000})..."
+    export GUNICORN_WORKERS=${GUNICORN_WORKERS:-4}  # AMD64: mehr Worker für bessere Performance
+fi
+
+echo "Using $GUNICORN_WORKERS Gunicorn workers for $ARCH architecture"
+
+# Starte mit Gunicorn
+exec gunicorn --config gunicorn.conf.py wsgi:application
