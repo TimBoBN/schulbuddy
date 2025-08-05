@@ -1,6 +1,7 @@
 # 🎓 SchulBuddy - Multi-Architecture Docker Edition
 
-Ein modernes Schulmanagementsystem mi```
+Ein modernes Schulmanagementsystem
+```
 schulbuddy/
 ├── 📁 config/                   # Konfigurationsdateien
 │   ├── .env.example            # Environment-Variablen Vorlage
@@ -23,6 +24,7 @@ schulbuddy/
 ├── 📄 config.py                 # Konfigurationsverwaltung
 ├── 📄 models.py                 # Datenbankmodellee Docker-Support für einfache Bereitstellung auf AMD64 und ARM-Systemen.
 
+```
 [![Docker Multi-Platform Build](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-multiplatform.yml/badge.svg)](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-multiplatform.yml)
 
 ## 🚀 Quick Start
