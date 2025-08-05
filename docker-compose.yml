@@ -5,11 +5,22 @@ services:
     # Für GitHub Container Registry (GHCR), kommentiere die obere Zeile aus und verwende stattdessen:
     # image: ghcr.io/timbobn/schulbuddy:${TAG:-latest}
     container_name: schulbuddy-app
-    # Überschreibe den Command um den korrekten entrypoint Pfad zu verwenden
+    # Führe die entrypoint Logik direkt aus, da scripts/ Ordner nicht im Image ist
     command: >
       /bin/bash -c "
-      chmod +x /app/scripts/entrypoint.sh;
-      /app/scripts/entrypoint.sh
+      echo 'Starting container as root to handle permissions...';
+      mkdir -p /app/instance /app/static/uploads;
+      echo 'Current directory permissions:';
+      ls -la /app/;
+      echo 'Environment variables:';
+      echo 'DOCKER_ENV:' $$DOCKER_ENV;
+      echo 'Testing database configuration...';
+      python3 -c 'import os, sys; sys.path.insert(0, \"/app\"); print(\"DOCKER_ENV value:\", repr(os.environ.get(\"DOCKER_ENV\"))); from config import Config; print(\"Config.SQLALCHEMY_DATABASE_URI:\", Config.SQLALCHEMY_DATABASE_URI)';
+      echo 'Testing SQLite creation in /app/data...';
+      touch /app/data/test.db;
+      ls -la /app/data/;
+      echo 'Starting application...';
+      exec python /app/app.py
       "
     ports:
       - "${EXTERNAL_PORT:-5000}:${PORT:-5000}"
