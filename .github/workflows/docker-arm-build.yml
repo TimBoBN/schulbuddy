@@ -171,34 +171,41 @@ jobs:
         run: |
           echo "Erstelle Multi-Arch Manifest mit ARM und AMD64 Images"
           
-          # AMD64 Images prüfen (falls sie existieren) und mit ARM-Images kombinieren
+          # Prüfe, ob AMD64 Images existieren
           if docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 > /dev/null 2>&1; then
+            echo "AMD64 Image gefunden, erstelle Multi-Arch Manifest"
+            
+            # Entferne existierende Manifeste falls vorhanden
+            docker manifest rm ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }} 2>/dev/null || true
+            
             # Version-spezifisches Manifest erstellen
             docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }} \
               ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
               ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
             
-            docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }} || true
+            docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}
             
-            # Nur bei main-Branch oder manueller Ausführung mit "latest" Tag
+            # Latest-Tag für main-Branch oder spezielle manuelle Ausführung
             if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.version_tag }}" == "latest" ]]; then
-              # Latest-Tag Manifest erstellen
+              echo "Erstelle latest Multi-Arch Manifest"
+              docker manifest rm ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest 2>/dev/null || true
               docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest \
                 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
                 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
-                
-              docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest || true
+              docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest
             fi
             
-            # Bei dev-Branch das dev-Tag erstellen
-            if [[ "${{ github.ref }}" == "refs/heads/dev" || "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.version_tag }}" == "dev" ]]; then
-              # Dev-Tag Manifest erstellen
+            # Dev-Tag für dev-Branch
+            if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+              echo "Erstelle dev Multi-Arch Manifest"
+              docker manifest rm ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev 2>/dev/null || true
               docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev \
                 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-amd64 \
                 ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.vars.outputs.VERSION }}-arm
-                
-              docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev || true
+              docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev
             fi
           else
             echo "AMD64 Images nicht gefunden - nur ARM-Images veröffentlicht"
+            echo "Verfügbare Images:"
+            docker images | grep schulbuddy || echo "Keine lokalen schulbuddy Images gefunden"
           fi
