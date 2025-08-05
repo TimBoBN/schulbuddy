@@ -260,7 +260,11 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <input class="form-control mb-2" type="text" name="school_year" value="{{ current_school_year }}" placeholder="Schuljahr" required>
+                                <select class="form-select mb-2" name="school_year" required>
+                                    {% for year in school_year_options %}
+                                        <option value="{{ year }}" {% if year == current_school_year %}selected{% endif %}>{{ year }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
                         </div>
                         

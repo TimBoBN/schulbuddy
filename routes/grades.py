@@ -17,8 +17,11 @@ def add_grade():
     """Note hinzufügen"""
     subject = request.form.get("subject")
     grade_value = request.form.get("grade")
-    grade_type = request.form.get("grade_type", "test")
+    grade_type = request.form.get("grade_type", "regular")
     description = request.form.get("description", "")
+    date_str = request.form.get("date")
+    semester = request.form.get("semester", "1")
+    school_year = request.form.get("school_year")
     
     # Liste der erlaubten Notenwerte (1.0, 1.5, 2.0, usw.)
     valid_grades = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0]
@@ -38,12 +41,29 @@ def add_grade():
         flash("Ungültige Note", "error")
         return redirect(url_for('main.index'))
     
+    # Datum verarbeiten
+    grade_date = None
+    if date_str:
+        try:
+            grade_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash("Ungültiges Datum", "error")
+            return redirect(url_for('main.index'))
+    
+    # Standard-Schuljahr falls nicht angegeben
+    if not school_year:
+        from utils.app_settings import get_current_school_year
+        school_year = get_current_school_year()
+    
     # Note erstellen
     grade = Grade(
         subject=subject,
         grade=grade_value,
         grade_type=grade_type,
         description=description,
+        date=grade_date,
+        semester=int(semester),
+        school_year=school_year,
         user_id=current_user.id
     )
     
