@@ -1,23 +1,26 @@
-# SchulBuddy Dockerfile - Vereinfachter Build
-# Feste Python-Version 3.11.7
+# SchulBuddy Multi-Platform Dockerfile
+# Optimiert für AMD64, ARM64 und ARMv7
 FROM python:3.11.7-slim as builder
 
 # Metadaten
 LABEL org.opencontainers.image.source=https://github.com/TimBoBN/schulbuddy
-LABEL org.opencontainers.image.description="SchulBuddy - Eine Anwendung zur Schulnotenerfassung und -verwaltung"
+LABEL org.opencontainers.image.description="SchulBuddy Multi-Platform - Schulnotenerfassung und -verwaltung"
 LABEL org.opencontainers.image.licenses=MIT
 
 # Arbeitsverzeichnis setzen
 WORKDIR /app
 
-# Requirements kopieren
-COPY requirements.txt ./
+# Requirements kopieren (verwende ARM-optimierte Requirements für alle Architekturen)
+COPY requirements-arm.txt requirements.txt ./
 
-# Basis-Dependencies installieren
+# Multi-Architektur-Dependencies installieren
 RUN apt-get update && \
-    apt-get install -y gcc g++ make && \
+    apt-get install -y --no-install-recommends \
+    gcc g++ make \
+    libatlas-base-dev \
+    zlib1g-dev libjpeg-dev libpng-dev libtiff-dev && \
     pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements-arm.txt && \
     rm -rf /var/lib/apt/lists/*
 
 # Production Stage
@@ -41,8 +44,10 @@ RUN pip install --no-cache-dir --upgrade pip setuptools
 # App-Code kopieren
 COPY . .
 
-# Entrypoint Script aus Repository verwenden und executable machen
-RUN chmod +x /app/entrypoint.sh
+# Entrypoint Script aus Repository verwenden und explizit executable machen
+RUN chmod +x /app/entrypoint.sh && \
+    ls -la /app/entrypoint.sh && \
+    echo "Entrypoint permissions set successfully"
 
 # Umgebungsvariablen und Port
 ENV FLASK_APP=app.py \
@@ -59,11 +64,11 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 # Security hardening und Berechtigungen
 RUN mkdir -p static/uploads instance data \
     && chmod -R 755 /app static/uploads instance data \
-    && chmod 700 /app/entrypoint.sh \
     && find /app -type f -not -path "*/\.*" -not -path "*/data/*" -not -path "*/static/uploads/*" -exec chmod 644 {} \; \
     && rm -rf /tmp/* /var/tmp/* /var/cache/* /var/log/* \
     && adduser --disabled-password --gecos '' appuser \
-    && chown -R appuser:appuser /app
+    && chown -R appuser:appuser /app \
+    && chmod 755 /app/entrypoint.sh
 
 # Non-root user
 USER appuser
