@@ -5,6 +5,12 @@ services:
     # Für GitHub Container Registry (GHCR), kommentiere die obere Zeile aus und verwende stattdessen:
     # image: ghcr.io/timbobn/schulbuddy:${TAG:-latest}
     container_name: schulbuddy-app
+    # Überschreibe den Command um den korrekten entrypoint Pfad zu verwenden
+    command: >
+      /bin/bash -c "
+      chmod +x /app/scripts/entrypoint.sh;
+      /app/scripts/entrypoint.sh
+      "
     ports:
       - "${EXTERNAL_PORT:-5000}:${PORT:-5000}"
     environment:
