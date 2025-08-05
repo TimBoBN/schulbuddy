@@ -41,30 +41,8 @@ RUN pip install --no-cache-dir --upgrade pip setuptools
 # App-Code kopieren
 COPY . .
 
-# Entrypoint script erstellen
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\n\
-echo "🚀 Starting SchulBuddy Container..."\n\
-\n\
-# Verzeichnisse erstellen\n\
-mkdir -p /app/data /app/static/uploads\n\
-\n\
-# Environment variables anzeigen\n\
-echo "Environment: DOCKER_ENV=$DOCKER_ENV"\n\
-echo "Database: $DATABASE_URL"\n\
-echo "Port: $PORT"\n\
-\n\
-# Datenbank initialisieren falls nötig\n\
-if [ ! -f "/app/data/schulbuddy.db" ]; then\n\
-    echo "📋 Initializing database..."\n\
-    python /app/init_db.py\n\
-fi\n\
-\n\
-# Standard-Architektur (AMD64)\n\
-echo "🎓 Starting SchulBuddy with Gunicorn on port $PORT..."\n\
-exec gunicorn --config gunicorn.conf.py wsgi:application\n\
-' > entrypoint.sh && chmod +x entrypoint.sh
+# Entrypoint Script aus Repository verwenden und executable machen
+RUN chmod +x /app/entrypoint.sh
 
 # Umgebungsvariablen und Port
 ENV FLASK_APP=app.py \
@@ -93,5 +71,5 @@ USER appuser
 # Volumes
 VOLUME ["/app/data", "/app/static/uploads"]
 
-# Startkommando
-CMD ["./entrypoint.sh"]
+# Startkommando - verwende absoluten Pfad für bessere Kompatibilität
+CMD ["/app/entrypoint.sh"]

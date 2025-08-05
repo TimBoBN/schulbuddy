@@ -1,0 +1,283 @@
+name: Multi-Platform Docker Build
+
+on:
+  push:
+    branches: [ main, dev ]
+    tags:
+      - 'v*'
+  
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Version tag für das Multi-Platform Image (z.B. v1.1.0, latest)'
+        required: true
+        default: 'latest'
+
+jobs:
+  multi-platform-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180  # Erhöhter Timeout für Multi-Platform Builds
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Debug workflow trigger
+        run: |
+          echo "🚀 Multi-Platform Build gestartet!"
+          echo "Event: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "SHA: ${{ github.sha }}"
+          echo "Input Version: ${{ github.event.inputs.version_tag }}"
+      
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          driver-opts: |
+            network=host
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract Version and Repository Info
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Manueller Trigger
+            VERSION="${{ github.event.inputs.version_tag }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Tag-Push
+            VERSION="${GITHUB_REF#refs/tags/}"
+          else
+            # Branch-Push
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+            VERSION="${BRANCH}-${TIMESTAMP}"
+          fi
+          
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Multi-Platform Version: ${VERSION}"
+          
+          # Repository Owner in Kleinbuchstaben
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "OWNER=${OWNER}" >> $GITHUB_OUTPUT
+          echo "Repository owner: ${OWNER}"
+      
+      - name: Build and Push Multi-Platform AMD64 Images
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          cache-from: type=gha,scope=multiplatform-amd64
+          cache-to: type=gha,scope=multiplatform-amd64,mode=max
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-amd64-mp
+            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-amd64-mp
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.created=${{ github.event.repository.created_at }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.description=SchulBuddy Multi-Platform AMD64
+      
+      - name: Build and Push Multi-Platform ARM Images
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.arm
+          platforms: linux/arm64,linux/arm/v7
+          push: true
+          cache-from: type=gha,scope=multiplatform-arm
+          cache-to: type=gha,scope=multiplatform-arm,mode=max
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-arm64-mp
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-armv7-mp
+            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-arm64-mp
+            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-armv7-mp
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.created=${{ github.event.repository.created_at }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.description=SchulBuddy Multi-Platform ARM
+      
+      - name: Create and Push Multi-Architecture Manifests
+        run: |
+          echo "🏗️ Erstelle echte Multi-Architecture Manifeste..."
+          
+          # Docker Hub Multi-Arch Manifest
+          echo "📦 Docker Hub Multi-Arch Manifest für Version: ${{ steps.meta.outputs.VERSION }}"
+          docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform \
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-amd64-mp \
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-arm64-mp \
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-armv7-mp
+          
+          # Annotate ARM platforms explicitly
+          docker manifest annotate ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform \
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-arm64-mp \
+            --arch arm64 --os linux
+          
+          docker manifest annotate ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform \
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-armv7-mp \
+            --arch arm --variant v7 --os linux
+          
+          # Push version-specific manifest
+          docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform
+          
+          # Inspiziere das Manifest
+          echo "🔍 Multi-Platform Manifest Inhalt:"
+          docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform
+          
+          # GitHub Container Registry Multi-Arch Manifest
+          echo "📦 GHCR Multi-Arch Manifest für Version: ${{ steps.meta.outputs.VERSION }}"
+          docker manifest create ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform \
+            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-amd64-mp \
+            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-arm64-mp \
+            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-armv7-mp
+          
+          # Annotate ARM platforms für GHCR
+          docker manifest annotate ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform \
+            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-arm64-mp \
+            --arch arm64 --os linux
+          
+          docker manifest annotate ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform \
+            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-armv7-mp \
+            --arch arm --variant v7 --os linux
+          
+          # Push GHCR version-specific manifest
+          docker manifest push ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform
+          
+          echo "✅ Multi-Platform Manifeste erstellt!"
+      
+      - name: Create Latest and Branch-specific Manifests
+        if: success()
+        run: |
+          # Latest Tag für main Branch
+          if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.event.inputs.version_tag }}" == "latest" ]]; then
+            echo "🎯 Erstelle 'latest' Multi-Platform Manifeste..."
+            
+            # Docker Hub latest
+            docker manifest rm ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest-multiplatform 2>/dev/null || true
+            docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest-multiplatform \
+              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-amd64-mp \
+              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-arm64-mp \
+              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-armv7-mp
+            
+            docker manifest annotate ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest-multiplatform \
+              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-arm64-mp \
+              --arch arm64 --os linux
+            
+            docker manifest annotate ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest-multiplatform \
+              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-armv7-mp \
+              --arch arm --variant v7 --os linux
+            
+            docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest-multiplatform
+            
+            # GHCR latest
+            docker manifest rm ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:latest-multiplatform 2>/dev/null || true
+            docker manifest create ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:latest-multiplatform \
+              ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-amd64-mp \
+              ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-arm64-mp \
+              ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-armv7-mp
+            
+            docker manifest annotate ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:latest-multiplatform \
+              ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-arm64-mp \
+              --arch arm64 --os linux
+            
+            docker manifest annotate ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:latest-multiplatform \
+              ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-armv7-mp \
+              --arch arm --variant v7 --os linux
+            
+            docker manifest push ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:latest-multiplatform
+            
+            echo "✅ Latest Multi-Platform Manifeste erstellt!"
+          fi
+          
+          # Dev Tag für dev Branch
+          if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            echo "🎯 Erstelle 'dev' Multi-Platform Manifeste..."
+            
+            # Docker Hub dev
+            docker manifest rm ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev-multiplatform 2>/dev/null || true
+            docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev-multiplatform \
+              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-amd64-mp \
+              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-arm64-mp \
+              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-armv7-mp
+            
+            docker manifest annotate ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev-multiplatform \
+              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-arm64-mp \
+              --arch arm64 --os linux
+            
+            docker manifest annotate ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev-multiplatform \
+              ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-armv7-mp \
+              --arch arm --variant v7 --os linux
+            
+            docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev-multiplatform
+            
+            # GHCR dev
+            docker manifest rm ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:dev-multiplatform 2>/dev/null || true
+            docker manifest create ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:dev-multiplatform \
+              ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-amd64-mp \
+              ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-arm64-mp \
+              ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-armv7-mp
+            
+            docker manifest annotate ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:dev-multiplatform \
+              ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-arm64-mp \
+              --arch arm64 --os linux
+            
+            docker manifest annotate ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:dev-multiplatform \
+              ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-armv7-mp \
+              --arch arm --variant v7 --os linux
+            
+            docker manifest push ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:dev-multiplatform
+            
+            echo "✅ Dev Multi-Platform Manifeste erstellt!"
+          fi
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "🎉 Multi-Platform Build Summary"
+          echo "=============================="
+          echo "Version: ${{ steps.meta.outputs.VERSION }}"
+          echo ""
+          echo "🐳 Verfügbare Multi-Platform Images:"
+          echo "• docker.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform"
+          echo "• ghcr.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform"
+          
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "• docker.io/timbobn/schulbuddy:latest-multiplatform"
+            echo "• ghcr.io/timbobn/schulbuddy:latest-multiplatform"
+          fi
+          
+          if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            echo "• docker.io/timbobn/schulbuddy:dev-multiplatform"
+            echo "• ghcr.io/timbobn/schulbuddy:dev-multiplatform"
+          fi
+          
+          echo ""
+          echo "🧪 Test Commands:"
+          echo "docker manifest inspect docker.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform"
+          echo "docker pull docker.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform"
+          echo ""
+          echo "✅ Multi-Platform Build completed!"
