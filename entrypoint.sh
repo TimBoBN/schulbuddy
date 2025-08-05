@@ -7,9 +7,15 @@ echo "Starting SchulBuddy container..."
 mkdir -p /app/data
 mkdir -p /app/static/uploads
 
+# Berechtigungen für appuser setzen (läuft als root)
+chown -R appuser:appuser /app/data /app/static/uploads
+chmod -R 755 /app/data /app/static/uploads
+
+echo "✅ Set correct permissions for appuser"
+
 # Debug: Zeige aktuellen Status
-echo "Current directory permissions:"
-ls -la /app/
+echo "Directory permissions:"
+ls -la /app/ | grep -E "(data|static)"
 
 echo "Environment variables:"
 echo "DOCKER_ENV: $DOCKER_ENV"
@@ -32,15 +38,15 @@ except Exception as e:
     print('Config import error:', str(e))
 "
 
-# Datenbank initialisieren falls nötig
+# Datenbank initialisieren falls nötig (als appuser)
 if [ ! -f "/app/data/schulbuddy.db" ]; then
-    echo "📋 Initializing database..."
-    python /app/init_db.py
+    echo "📋 Initializing database as appuser..."
+    su appuser -c "cd /app && python /app/init_db.py"
 fi
 
-# Erstelle eine Test-SQLite-Datei um Berechtigungen zu prüfen
-echo "Testing SQLite creation in /app/data..."
-touch /app/data/test.db
+# Erstelle eine Test-SQLite-Datei um Berechtigungen zu prüfen (als appuser)
+echo "Testing SQLite creation in /app/data as appuser..."
+su appuser -c "touch /app/data/test.db"
 ls -la /app/data/
 echo "SQLite file creation test successful"
 
@@ -56,5 +62,6 @@ fi
 
 echo "Using $GUNICORN_WORKERS Gunicorn workers for $ARCH architecture"
 
-# Starte mit Gunicorn
-exec gunicorn --config gunicorn.conf.py wsgi:application
+# Starte mit Gunicorn als appuser
+echo "Starting application as appuser..."
+exec su appuser -c "cd /app && gunicorn --config gunicorn.conf.py wsgi:application"

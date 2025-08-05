@@ -70,11 +70,8 @@ RUN mkdir -p static/uploads instance data \
     && chown -R appuser:appuser /app \
     && chmod 755 /app/entrypoint.sh
 
-# Non-root user
-USER appuser
-
-# Volumes
+# Volumes (definiere Volumes, aber starte Container als root)
 VOLUME ["/app/data", "/app/static/uploads"]
 
-# Startkommando - verwende absoluten Pfad für bessere Kompatibilität
+# Container startet als root, entrypoint.sh wechselt zu appuser
 CMD ["/app/entrypoint.sh"]
