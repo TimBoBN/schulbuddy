@@ -2,7 +2,7 @@ services:
   schulbuddy:
     # Multi-Architecture Docker Images (automatische Architektur-Auswahl)
     # Docker Hub (empfohlen für öffentliche Nutzung)
-    image: docker.io/timbobn/schulbuddy:${TAG:-latest}
+    image: docker.io/timbobn/schulbuddy:latest
     
     # GitHub Container Registry (alternative, gleiche Multi-Arch Unterstützung)
     # image: ghcr.io/timbobn/schulbuddy:${TAG:-latest}
