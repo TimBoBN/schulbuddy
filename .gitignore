@@ -157,8 +157,8 @@ data/
 uploads/
 static/uploads/
 
-# Docker build artifacts (entrypoint.sh is copied from scripts/ for Docker)
-/entrypoint.sh
+# Docker build artifacts - scripts/entrypoint.sh wird nach /entrypoint.sh kopiert
+# /entrypoint.sh - Kommentiert aus, damit entrypoint.sh im Repo bleiben kann
 
 # Development files
 dev/

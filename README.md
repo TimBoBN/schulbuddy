@@ -1,23 +1,143 @@
-# 🎓 SchulBuddy - Docker Edition
+# 🎓 SchulBuddy - Multi-Architecture Docker Edition
 
-Ein modernes Schulmanagementsystem mit Docker-Support für einfache Bereitstellung, Verwaltung und kontinuierliche Auslieferung.
+Ein modernes Schulmanagementsystem mi```
+schulbuddy/
+├── 📁 config/                   # Konfigurationsdateien
+│   ├── .env.example            # Environment-Variablen Vorlage
+│   ├── .env.template           # Alternative Vorlage
+│   └── nginx.conf              # Nginx Konfiguration
+├── 📁 docs/                     # Dokumentation
+│   ├── ARM_SUPPORT.md          # ARM-Support Details
+│   ├── DOCKER_README.md        # Docker Setup Guide
+│   ├── INDEX.md                # Dokumentations-Index
+│   ├── MULTI-ARCH-README.md    # Multi-Architecture Guide
+│   └── SECURITY.md             # Sicherheitsrichtlinien
+├── 📁 scripts/                  # Utility Scripts
+│   ├── build-multiarch.ps1     # Multi-Arch Build (PowerShell)
+│   ├── build-multiarch.sh      # Multi-Arch Build (Bash)
+│   ├── setup-env.ps1           # Environment Setup (PowerShell)
+│   ├── setup-env.sh            # Environment Setup (Bash)
+│   ├── trigger-multiplatform.ps1 # Workflow Trigger (PowerShell)
+│   └── trigger-multiplatform.sh  # Workflow Trigger (Bash)
+├── 📄 app.py                    # Haupt-Flask-Anwendung
+├── 📄 config.py                 # Konfigurationsverwaltung
+├── 📄 models.py                 # Datenbankmodellee Docker-Support für einfache Bereitstellung auf AMD64 und ARM-Systemen.
 
-[![Docker Build and Push to GHCR](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-ghcr-publish.yml/badge.svg)](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-ghcr-publish.yml)
-[![Docker Hub Publish](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-hub-publish.yml/badge.svg)](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-hub-publish.yml)
+[![Docker Multi-Platform Build](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-multiplatform.yml/badge.svg)](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-multiplatform.yml)
+
+## 🚀 Quick Start
+
+### Option 1: Schnellstart mit curl (empfohlen)
+
+```bash
+# 1. Konfigurationsdatei herunterladen
+curl -o .env https://raw.githubusercontent.com/TimBoBN/schulbuddy/main/config/.env.example
+
+# 2. Wichtige Einstellungen anpassen
+nano .env  # Ändere mindestens SECRET_KEY!
+
+# 3. Container starten (automatische Architektur-Erkennung!)
+docker-compose up -d
+
+# 4. Öffne http://localhost:5000
+```
+
+### Option 2: Manueller Start
+
+```bash
+# 1. Repository klonen (optional)
+git clone https://github.com/TimBoBN/schulbuddy.git
+cd schulbuddy
+
+# 2. Konfiguration kopieren
+cp config/.env.example .env
+
+# 3. Anpassen und starten
+nano .env
+docker-compose up -d
+```
+
+### 🎯 Verschiedene Versionen
+
+```bash
+# Produktionsversion (main branch)
+docker pull timbobn/schulbuddy:latest
+
+# Entwicklungsversion (dev branch) 
+docker pull timbobn/schulbuddy:dev
+
+# Spezifische Version
+docker pull timbobn/schulbuddy:v1.2.0
+```
+
+## 🏗️ Multi-Architecture Support
+
+SchulBuddy unterstützt automatisch:
+- **AMD64**: Normale PCs, Server (4 Gunicorn Worker)
+- **ARM**: Raspberry Pi, Apple M1/M2 (2 Gunicorn Worker)
+
+Docker wählt automatisch die richtige Architektur für dein System!
+
+## ⚙️ Konfiguration (.env Datei)
+
+### Automatisch herunterladen:
+```bash
+curl -o .env https://raw.githubusercontent.com/TimBoBN/schulbuddy/main/config/.env.example
+```
+
+### Wichtigste Einstellungen:
+
+```bash
+# 🔐 WICHTIG: Ändere den Secret Key!
+SECRET_KEY=dein-sehr-sicherer-geheimer-schluessel-hier
+
+# 🏫 Schuleinstellungen
+CURRENT_SCHOOL_YEAR=2024/25
+CURRENT_SEMESTER=1
+
+# 🌐 Server
+PORT=5000
+EXTERNAL_PORT=5000
+
+# 🐳 Docker Image Version  
+TAG=latest  # oder 'dev' für Entwicklungsversion
+```
+
+### Vollständige .env Optionen:
+- **Sicherheit**: `SECRET_KEY`, Session-Timeouts, Login-Limits
+- **Schule**: Schuljahr, Semester
+- **Performance**: Worker-Anzahl (automatisch), Timeouts
+- **Docker**: Image-Tags, Registries
 
 ## 📁 Projektstruktur
 
 ```
 schulbuddy/
-├── 📄 app.py                    # Haupt-Flask-Anwendung
+├── � config/                   # Konfigurationsdateien
+│   ├── .env.example            # Environment-Variablen Vorlage
+│   ├── .env.template           # Alternative Vorlage
+│   └── nginx.conf              # Nginx Konfiguration
+├── 📁 docs/                     # Dokumentation
+│   ├── ARM_SUPPORT.md          # ARM-Support Details
+│   ├── DOCKER_README.md        # Docker Setup Guide
+│   ├── MULTI-ARCH-README.md    # Multi-Architecture Guide
+│   └── SECURITY.md             # Sicherheitsrichtlinien
+├── 📁 scripts/                  # Utility Scripts
+│   ├── build-multiarch.ps1     # Multi-Arch Build (PowerShell)
+│   ├── build-multiarch.sh      # Multi-Arch Build (Bash)
+│   ├── setup-env.ps1           # Environment Setup (PowerShell)
+│   └── setup-env.sh            # Environment Setup (Bash)
+├── �📄 app.py                    # Haupt-Flask-Anwendung
 ├── 📄 config.py                 # Konfigurationsverwaltung
 ├── 📄 models.py                 # Datenbankmodelle
-├── 📄 wsgi.py                   # WSGI-Einstiegspunkt für Produktionsserver
-├── 📄 api_security.py           # API-Sicherheitsimplementierung
+├── 📄 wsgi.py                   # WSGI-Einstiegspunkt
+├── 📄 api_security.py           # API-Sicherheit
 ├── 📄 requirements.txt          # Python-Abhängigkeiten
-├── 🐳 Dockerfile                # Docker-Container-Definition
+├── 🐳 Dockerfile                # AMD64 Container
+├── 🐳 Dockerfile.arm            # ARM Container
 ├── 🐳 docker-compose.yml        # Service-Orchestrierung
-├── 📄 gunicorn.conf.py          # Gunicorn-Konfiguration
+├── 📄 entrypoint.sh             # Container Startup
+└── 📄 gunicorn.conf.py          # Gunicorn-Konfiguration
 ├── 📄 entrypoint.sh             # Container-Einstiegsskript
 ├── 📄 Makefile                  # Build-Automatisierung
 ├── 📁 .github/workflows/        # CI/CD Workflows
@@ -194,12 +314,18 @@ Die Anwendung unterstützt flexible Port-Konfiguration:
 - **dev**: Entwicklungsversion mit neuesten Features (dev-Branch)
 - **vX.Y.Z**: Spezifische Versionen (Tags)
 
+### Unterstützte Architekturen
+
+Alle unsere Docker Images unterstützen folgende Plattformen:
+- **linux/amd64**: Standard x86_64 (Intel/AMD)
+- **linux/arm64**: 64-bit ARM (z.B. Apple Silicon, Raspberry Pi 4 64-bit)
+- **linux/arm/v7**: 32-bit ARM (z.B. Raspberry Pi 2/3)
+
 ## 📖 Erweiterte Dokumentation
 
 - [🔒 Sicherheitsrichtlinie & CVE-Übersicht](SECURITY.md)
-- [� Docker-Anleitung](docs/DOCKER_README.md)
-- [🔧 Setup-Anleitung](docs/SETUP_README.md)
-- [🌐 Port-Konfiguration](docs/PORT_CONFIG.md)
+- [🐳 Docker-Anleitung](docs/DOCKER_README.md)
+- [🏠 Vollständige Dokumentation](docs/INDEX.md)
 
 ## 🔧 Entwicklung
 
@@ -346,9 +472,22 @@ Jeder Beitrag wird geschätzt!
 
 Bei Fragen oder Problemen:
 
-1. Prüfe die [Dokumentation](docs/)
-2. Schaue in die [Issues](../../issues)
-3. Erstelle ein neues Issue mit detaillierter Beschreibung
+1. **Vollständige Dokumentation**: [docs/INDEX.md](docs/INDEX.md)
+2. **Multi-Architecture Guide**: [docs/MULTI-ARCH-README.md](docs/MULTI-ARCH-README.md)
+3. **Docker Setup**: [docs/DOCKER_README.md](docs/DOCKER_README.md)
+4. **Sicherheit**: [docs/SECURITY.md](docs/SECURITY.md)
+5. **ARM Support**: [docs/ARM_SUPPORT.md](docs/ARM_SUPPORT.md)
+6. **GitHub Issues**: [Issues](../../issues)
+
+## 📚 Dokumentationsübersicht
+
+| Thema | Datei | Beschreibung |
+|-------|-------|--------------|
+| 🏠 **Hauptindex** | [docs/INDEX.md](docs/INDEX.md) | Übersicht aller Dokumentation |
+| 🏗️ **Multi-Arch** | [docs/MULTI-ARCH-README.md](docs/MULTI-ARCH-README.md) | AMD64 & ARM Support |
+| 🐳 **Docker Setup** | [docs/DOCKER_README.md](docs/DOCKER_README.md) | Detaillierte Installation |
+| 🛡️ **Sicherheit** | [docs/SECURITY.md](docs/SECURITY.md) | Sicherheitsrichtlinien |
+| 🔋 **ARM Support** | [docs/ARM_SUPPORT.md](docs/ARM_SUPPORT.md) | Raspberry Pi & Apple Silicon |
 
 ---
 

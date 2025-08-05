@@ -1,22 +1,22 @@
 services:
   schulbuddy:
-    # Multi-Architecture Docker Images (automatische Architektur-Auswahl)
-    # Docker Hub (empfohlen für öffentliche Nutzung)
-    image: docker.io/timbobn/schulbuddy:latest
+    # Multi-Platform Docker Images (echter Multi-Arch Support)
+    # Diese Images enthalten automatische Architektur-Erkennung
+    image: docker.io/timbobn/schulbuddy:${TAG:-dev}
     
-    # GitHub Container Registry (alternative, gleiche Multi-Arch Unterstützung)
-    # image: ghcr.io/timbobn/schulbuddy:${TAG:-latest}
+    # Alternative: GitHub Container Registry  
+    # image: ghcr.io/timbobn/schulbuddy:${TAG:-dev}
     
     container_name: schulbuddy-app
-    platform: ${PLATFORM:-}
     
     # Entrypoint-Script mit automatischer Architektur-Erkennung
     # Das Script erkennt ARM/AMD64 und passt Gunicorn-Worker entsprechend an
     command: >
       /bin/bash -c "
       chmod +x /app/entrypoint.sh;
-      echo 'Starte SchulBuddy mit Multi-Arch Support...';
+      echo 'Starte SchulBuddy Multi-Platform Container...';
       echo 'Erkannte Architektur:' $(uname -m);
+      echo 'Docker Platform:' $(uname -a);
       /app/entrypoint.sh
       "
     ports:
@@ -35,7 +35,7 @@ services:
       - LOGIN_ATTEMPT_TIMEOUT_MINUTES=15
       - CURRENT_SCHOOL_YEAR=2024/25
       - CURRENT_SEMESTER=1
-      # Multi-Arch Konfiguration
+      # Multi-Arch Konfiguration (automatisch durch entrypoint.sh)
       - WORKERS=${WORKERS:-auto}  # auto = architekturabhängig (2 für ARM, 4 für AMD64)
       - WORKER_CLASS=${WORKER_CLASS:-sync}
       - TIMEOUT=${TIMEOUT:-120}
@@ -50,10 +50,8 @@ services:
       retries: 3
       start_period: 40s
 
-
 volumes:
   schulbuddy_data:
     driver: local
   schulbuddy_uploads:
     driver: local
-

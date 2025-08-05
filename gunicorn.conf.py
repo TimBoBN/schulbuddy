@@ -9,8 +9,9 @@ import os
 bind = f"0.0.0.0:{os.environ.get('PORT', '5000')}"
 backlog = 2048
 
-# Worker processes
-workers = 2  # Reduziert für bessere RAM-Effizienz
+# Worker processes - automatische Anpassung an Architektur
+# Wenn GUNICORN_WORKERS vom entrypoint.sh gesetzt wurde (für ARM), verwende diesen Wert
+workers = int(os.environ.get('GUNICORN_WORKERS', multiprocessing.cpu_count() + 1))  
 worker_class = "sync"
 worker_connections = 500  # Reduziert von 1000
 timeout = 30

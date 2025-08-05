@@ -1,99 +1,77 @@
-# SchulBuddy Dockerfile - Multi-stage build für optimale Performance
-FROM python:3.11-slim as builder
+# SchulBuddy Multi-Platform Dockerfile
+# Optimiert für AMD64, ARM64 und ARMv7
+FROM python:3.11.7-slim as builder
 
-# GitHub-spezifische Labels
+# Metadaten
 LABEL org.opencontainers.image.source=https://github.com/TimBoBN/schulbuddy
-LABEL org.opencontainers.image.description="SchulBuddy - Eine Anwendung zur Schulnotenerfassung und -verwaltung"
+LABEL org.opencontainers.image.description="SchulBuddy Multi-Platform - Schulnotenerfassung und -verwaltung"
 LABEL org.opencontainers.image.licenses=MIT
 
 # Arbeitsverzeichnis setzen
 WORKDIR /app
 
-# Requirements kopieren und installieren
-COPY requirements.txt .
-RUN pip install --user --no-cache-dir --upgrade pip setuptools && \
-    pip install --user --no-cache-dir -r requirements.txt
+# Requirements kopieren (verwende ARM-optimierte Requirements für alle Architekturen)
+COPY requirements-arm.txt requirements.txt ./
+
+# Multi-Architektur-Dependencies installieren
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gcc g++ make \
+    libatlas-base-dev \
+    zlib1g-dev libjpeg-dev libpng-dev libtiff-dev && \
+    pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements-arm.txt && \
+    rm -rf /var/lib/apt/lists/*
 
 # Production Stage
-FROM python:3.11-slim
+FROM python:3.11.7-slim
 
 # Arbeitsverzeichnis setzen
 WORKDIR /app
 
-# System-Dependencies installieren (für eventuelle native Extensions)
-RUN apt-get update && apt-get install -y \
-    gcc \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Basis-System-Dependencies installieren
+RUN apt-get update && \
+    apt-get install -y curl && \
+    mkdir -p /usr/local/lib/python3.11/site-packages/ && \
+    rm -rf /var/lib/apt/lists/*
 
-# Python packages von builder stage kopieren
-COPY --from=builder /root/.local /usr/local
+# Python-Pakete aus Builder kopieren
+COPY --from=builder /usr/local/ /usr/local/
 
-# Stellen sicher, dass pip und setuptools auch in der finalen Phase aktualisiert sind
+# pip und setuptools aktualisieren
 RUN pip install --no-cache-dir --upgrade pip setuptools
 
 # App-Code kopieren
 COPY . .
 
-# Verzeichnisse erstellen
-RUN mkdir -p static/uploads instance data && \
-    chmod 755 static/uploads instance data
+# Entrypoint Script aus Repository verwenden und explizit executable machen
+RUN chmod +x /app/entrypoint.sh && \
+    ls -la /app/entrypoint.sh && \
+    echo "Entrypoint permissions set successfully"
 
-# Entrypoint script erstellen
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\n\
-echo "🚀 Starting SchulBuddy Container..."\n\
-\n\
-# Verzeichnisse erstellen und Berechtigungen setzen\n\
-mkdir -p /app/data /app/static/uploads\n\
-\n\
-# Environment variables anzeigen\n\
-echo "Environment: DOCKER_ENV=$DOCKER_ENV"\n\
-echo "Database: $DATABASE_URL"\n\
-echo "Port: $PORT"\n\
-\n\
-# Datenbank initialisieren falls nötig\n\
-if [ ! -f "/app/data/schulbuddy.db" ]; then\n\
-    echo "📋 Initializing database..."\n\
-    python /app/init_db.py\n\
-fi\n\
-\n\
-# App starten\n\
-echo "🎓 Starting SchulBuddy with Gunicorn on port $PORT..."\n\
-exec gunicorn --config gunicorn.conf.py wsgi:application\n\
-' > entrypoint.sh && chmod +x entrypoint.sh
+# Umgebungsvariablen und Port
+ENV FLASK_APP=app.py \
+    FLASK_ENV=production \
+    DOCKER_ENV=1 \
+    PYTHONPATH=/app
 
-# Umgebungsvariablen setzen
-ENV FLASK_APP=app.py
-ENV FLASK_ENV=production
-ENV DOCKER_ENV=1
-ENV PYTHONPATH=/app
-
-# Port freigeben
 EXPOSE 5000
 
-# Healthcheck hinzufügen
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
-# Security hardening
-# Setze Dateiberechtigungen und reduziere Angriffsfläche
-RUN chmod -R 755 /app && \
-    chmod 700 /app/entrypoint.sh && \
-    # Read-only permissions für Code-Dateien
-    find /app -type f -not -path "*/\.*" -not -path "*/data/*" -not -path "*/static/uploads/*" -exec chmod 644 {} \; && \
-    # Entferne unnötige Tools und Dateien
-    rm -rf /tmp/* /var/tmp/* /var/cache/* /var/log/* && \
-    # Non-root user mit minimalen Berechtigungen erstellen
-    adduser --disabled-password --gecos '' appuser && \
-    chown -R appuser:appuser /app
+# Security hardening und Berechtigungen
+RUN mkdir -p static/uploads instance data \
+    && chmod -R 755 /app static/uploads instance data \
+    && find /app -type f -not -path "*/\.*" -not -path "*/data/*" -not -path "*/static/uploads/*" -exec chmod 644 {} \; \
+    && rm -rf /tmp/* /var/tmp/* /var/cache/* /var/log/* \
+    && adduser --disabled-password --gecos '' appuser \
+    && chown -R appuser:appuser /app \
+    && chmod 755 /app/entrypoint.sh
 
-# Setze niedrige Berechtigungen für den Container
-USER appuser
-
-# Definiere Volumes explizit als solche für bessere Transparenz
+# Volumes (definiere Volumes, aber starte Container als root)
 VOLUME ["/app/data", "/app/static/uploads"]
 
-# Startkommando
-CMD ["./entrypoint.sh"]
+# Container startet als root, entrypoint.sh wechselt zu appuser
+CMD ["/app/entrypoint.sh"]
