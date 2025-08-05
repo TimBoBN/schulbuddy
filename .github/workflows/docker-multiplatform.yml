@@ -1,4 +1,4 @@
-name: Multi-Platform Docker Build
+name: Docker Multi-Platform Build
 
 on:
   push:
@@ -95,8 +95,8 @@ jobs:
           cache-to: |
             type=gha,scope=multiplatform-build,mode=max
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform
-            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}
+            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ steps.meta.outputs.VERSION }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.created=${{ github.event.repository.created_at }}
@@ -114,8 +114,8 @@ jobs:
           cache-from: |
             type=gha,scope=multiplatform-build
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ github.ref == 'refs/heads/main' && 'latest-multiplatform' || 'dev-multiplatform' }}
-            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ github.ref == 'refs/heads/main' && 'latest-multiplatform' || 'dev-multiplatform' }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ github.ref == 'refs/heads/main' && 'latest' || 'dev' }}
+            ghcr.io/${{ steps.meta.outputs.OWNER }}/schulbuddy:${{ github.ref == 'refs/heads/main' && 'latest' || 'dev' }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.created=${{ github.event.repository.created_at }}
@@ -127,18 +127,18 @@ jobs:
           echo "🔍 Verifying Multi-Platform Build..."
           
           # Inspiziere die erstellten Multi-Platform Images
-          echo "📦 Version-specific Multi-Platform Image:"
-          docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform || echo "Version manifest not ready yet"
+          echo "📦 Version-specific Image:"
+          docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:${{ steps.meta.outputs.VERSION }} || echo "Version manifest not ready yet"
           
           # Inspiziere Branch-specific Images falls vorhanden
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "📦 Latest Multi-Platform Image:"
-            docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest-multiplatform || echo "Latest manifest not ready yet"
+            echo "📦 Latest Image:"
+            docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:latest || echo "Latest manifest not ready yet"
           fi
           
           if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
-            echo "📦 Dev Multi-Platform Image:"
-            docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev-multiplatform || echo "Dev manifest not ready yet"
+            echo "📦 Dev Image:"
+            docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/schulbuddy:dev || echo "Dev manifest not ready yet"
           fi
           
           echo "✅ Multi-Platform Build verification completed!"
@@ -150,22 +150,22 @@ jobs:
           echo "Version: ${{ steps.meta.outputs.VERSION }}"
           echo ""
           echo "🐳 Verfügbare Multi-Platform Images:"
-          echo "• docker.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform"
-          echo "• ghcr.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform"
+          echo "• docker.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}"
+          echo "• ghcr.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}"
           
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "• docker.io/timbobn/schulbuddy:latest-multiplatform"
-            echo "• ghcr.io/timbobn/schulbuddy:latest-multiplatform"
+            echo "• docker.io/timbobn/schulbuddy:latest"
+            echo "• ghcr.io/timbobn/schulbuddy:latest"
           fi
           
           if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
-            echo "• docker.io/timbobn/schulbuddy:dev-multiplatform"
-            echo "• ghcr.io/timbobn/schulbuddy:dev-multiplatform"
+            echo "• docker.io/timbobn/schulbuddy:dev"
+            echo "• ghcr.io/timbobn/schulbuddy:dev"
           fi
           
           echo ""
           echo "🧪 Test Commands:"
-          echo "docker manifest inspect docker.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform"
-          echo "docker pull docker.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}-multiplatform"
+          echo "docker manifest inspect docker.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}"
+          echo "docker pull docker.io/timbobn/schulbuddy:${{ steps.meta.outputs.VERSION }}"
           echo ""
           echo "✅ Multi-Platform Build completed!"

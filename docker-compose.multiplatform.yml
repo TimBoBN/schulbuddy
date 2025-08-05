@@ -2,10 +2,10 @@ services:
   schulbuddy:
     # Multi-Platform Docker Images (echter Multi-Arch Support)
     # Diese Images enthalten automatische Architektur-Erkennung
-    image: docker.io/timbobn/schulbuddy:${TAG:-dev-multiplatform}
+    image: docker.io/timbobn/schulbuddy:${TAG:-dev}
     
-    # Alternative: GitHub Container Registry
-    # image: ghcr.io/timbobn/schulbuddy:${TAG:-dev-multiplatform}
+    # Alternative: GitHub Container Registry  
+    # image: ghcr.io/timbobn/schulbuddy:${TAG:-dev}
     
     container_name: schulbuddy-app
     

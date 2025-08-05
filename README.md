@@ -1,20 +1,73 @@
 # 🎓 SchulBuddy - Multi-Architecture Docker Edition
 
-Ein modernes Schulmanagementsystem mit Multi-Architecture Docker-Support für einfache Bereitstellung auf AMD64 und ARM-Systemen.
+Ein modernes Schulmanagementsystem mi```
+schulbuddy/
+├── 📁 config/                   # Konfigurationsdateien
+│   ├── .env.example            # Environment-Variablen Vorlage
+│   ├── .env.template           # Alternative Vorlage
+│   └── nginx.conf              # Nginx Konfiguration
+├── 📁 docs/                     # Dokumentation
+│   ├── ARM_SUPPORT.md          # ARM-Support Details
+│   ├── DOCKER_README.md        # Docker Setup Guide
+│   ├── INDEX.md                # Dokumentations-Index
+│   ├── MULTI-ARCH-README.md    # Multi-Architecture Guide
+│   └── SECURITY.md             # Sicherheitsrichtlinien
+├── 📁 scripts/                  # Utility Scripts
+│   ├── build-multiarch.ps1     # Multi-Arch Build (PowerShell)
+│   ├── build-multiarch.sh      # Multi-Arch Build (Bash)
+│   ├── setup-env.ps1           # Environment Setup (PowerShell)
+│   ├── setup-env.sh            # Environment Setup (Bash)
+│   ├── trigger-multiplatform.ps1 # Workflow Trigger (PowerShell)
+│   └── trigger-multiplatform.sh  # Workflow Trigger (Bash)
+├── 📄 app.py                    # Haupt-Flask-Anwendung
+├── 📄 config.py                 # Konfigurationsverwaltung
+├── 📄 models.py                 # Datenbankmodellee Docker-Support für einfache Bereitstellung auf AMD64 und ARM-Systemen.
 
-[![Docker Multi-Arch Build](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-arm-build.yml/badge.svg)](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-arm-build.yml)
-[![Docker AMD64 Build](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-amd64-unified.yml/badge.svg)](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-amd64-unified.yml)
+[![Docker Multi-Platform Build](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-multiplatform.yml/badge.svg)](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-multiplatform.yml)
 
 ## 🚀 Quick Start
 
-```bash
-# 1. Konfiguration vorbereiten
-cp config/.env.example .env
+### Option 1: Schnellstart mit curl (empfohlen)
 
-# 2. Container starten (automatische Architektur-Erkennung!)
+```bash
+# 1. Konfigurationsdatei herunterladen
+curl -o .env https://raw.githubusercontent.com/TimBoBN/schulbuddy/main/config/.env.example
+
+# 2. Wichtige Einstellungen anpassen
+nano .env  # Ändere mindestens SECRET_KEY!
+
+# 3. Container starten (automatische Architektur-Erkennung!)
 docker-compose up -d
 
-# 3. Öffne http://localhost:5000
+# 4. Öffne http://localhost:5000
+```
+
+### Option 2: Manueller Start
+
+```bash
+# 1. Repository klonen (optional)
+git clone https://github.com/TimBoBN/schulbuddy.git
+cd schulbuddy
+
+# 2. Konfiguration kopieren
+cp config/.env.example .env
+
+# 3. Anpassen und starten
+nano .env
+docker-compose up -d
+```
+
+### 🎯 Verschiedene Versionen
+
+```bash
+# Produktionsversion (main branch)
+docker pull timbobn/schulbuddy:latest
+
+# Entwicklungsversion (dev branch) 
+docker pull timbobn/schulbuddy:dev
+
+# Spezifische Version
+docker pull timbobn/schulbuddy:v1.2.0
 ```
 
 ## 🏗️ Multi-Architecture Support
@@ -24,6 +77,37 @@ SchulBuddy unterstützt automatisch:
 - **ARM**: Raspberry Pi, Apple M1/M2 (2 Gunicorn Worker)
 
 Docker wählt automatisch die richtige Architektur für dein System!
+
+## ⚙️ Konfiguration (.env Datei)
+
+### Automatisch herunterladen:
+```bash
+curl -o .env https://raw.githubusercontent.com/TimBoBN/schulbuddy/main/config/.env.example
+```
+
+### Wichtigste Einstellungen:
+
+```bash
+# 🔐 WICHTIG: Ändere den Secret Key!
+SECRET_KEY=dein-sehr-sicherer-geheimer-schluessel-hier
+
+# 🏫 Schuleinstellungen
+CURRENT_SCHOOL_YEAR=2024/25
+CURRENT_SEMESTER=1
+
+# 🌐 Server
+PORT=5000
+EXTERNAL_PORT=5000
+
+# 🐳 Docker Image Version  
+TAG=latest  # oder 'dev' für Entwicklungsversion
+```
+
+### Vollständige .env Optionen:
+- **Sicherheit**: `SECRET_KEY`, Session-Timeouts, Login-Limits
+- **Schule**: Schuljahr, Semester
+- **Performance**: Worker-Anzahl (automatisch), Timeouts
+- **Docker**: Image-Tags, Registries
 
 ## 📁 Projektstruktur
 
@@ -241,8 +325,7 @@ Alle unsere Docker Images unterstützen folgende Plattformen:
 
 - [🔒 Sicherheitsrichtlinie & CVE-Übersicht](SECURITY.md)
 - [🐳 Docker-Anleitung](docs/DOCKER_README.md)
-- [🔧 Setup-Anleitung](docs/SETUP_README.md)
-- [🌐 Port-Konfiguration](docs/PORT_CONFIG.md)
+- [🏠 Vollständige Dokumentation](docs/INDEX.md)
 
 ## 🔧 Entwicklung
 
