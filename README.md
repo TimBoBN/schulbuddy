@@ -33,15 +33,18 @@ schulbuddy/
 
 ```bash
 # 1. Konfigurationsdatei herunterladen
+curl -o docker-compose.yml https://raw.githubusercontent.com/TimBoBN/schulbuddy/main/docker-compose.multiplatform.yml
+
+# 2. .env herunterladen
 curl -o .env https://raw.githubusercontent.com/TimBoBN/schulbuddy/main/config/.env.example
 
-# 2. Wichtige Einstellungen anpassen
+# 3. Wichtige Einstellungen anpassen
 nano .env  # Ändere mindestens SECRET_KEY!
 
-# 3. Container starten (automatische Architektur-Erkennung!)
+# 4. Container starten (automatische Architektur-Erkennung!)
 docker-compose up -d
 
-# 4. Öffne http://localhost:5000
+# 5. Öffne http://localhost:5000
 ```
 
 ### Option 2: Manueller Start
