@@ -1,14 +1,22 @@
 services:
   schulbuddy:
-    # Docker Hub Image
+    # Multi-Architecture Docker Images (automatische Architektur-Auswahl)
+    # Docker Hub (empfohlen für öffentliche Nutzung)
     image: docker.io/timbobn/schulbuddy:${TAG:-latest}
-    # Für GitHub Container Registry (GHCR), kommentiere die obere Zeile aus und verwende stattdessen:
+    
+    # GitHub Container Registry (alternative, gleiche Multi-Arch Unterstützung)
     # image: ghcr.io/timbobn/schulbuddy:${TAG:-latest}
+    
     container_name: schulbuddy-app
-    # Verwende das entrypoint.sh Script im Hauptverzeichnis
+    platform: ${PLATFORM:-}
+    
+    # Entrypoint-Script mit automatischer Architektur-Erkennung
+    # Das Script erkennt ARM/AMD64 und passt Gunicorn-Worker entsprechend an
     command: >
       /bin/bash -c "
       chmod +x /app/entrypoint.sh;
+      echo 'Starte SchulBuddy mit Multi-Arch Support...';
+      echo 'Erkannte Architektur:' $(uname -m);
       /app/entrypoint.sh
       "
     ports:
@@ -27,6 +35,10 @@ services:
       - LOGIN_ATTEMPT_TIMEOUT_MINUTES=15
       - CURRENT_SCHOOL_YEAR=2024/25
       - CURRENT_SEMESTER=1
+      # Multi-Arch Konfiguration
+      - WORKERS=${WORKERS:-auto}  # auto = architekturabhängig (2 für ARM, 4 für AMD64)
+      - WORKER_CLASS=${WORKER_CLASS:-sync}
+      - TIMEOUT=${TIMEOUT:-120}
     volumes:
       - ./instance:/app/data
       - ./static/uploads:/app/static/uploads

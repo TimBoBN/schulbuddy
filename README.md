@@ -1,23 +1,59 @@
-# 🎓 SchulBuddy - Docker Edition
+# 🎓 SchulBuddy - Multi-Architecture Docker Edition
 
-Ein modernes Schulmanagementsystem mit Docker-Support für einfache Bereitstellung, Verwaltung und kontinuierliche Auslieferung.
+Ein modernes Schulmanagementsystem mit Multi-Architecture Docker-Support für einfache Bereitstellung auf AMD64 und ARM-Systemen.
 
-[![Docker Build and Push to GHCR](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-ghcr-publish.yml/badge.svg)](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-ghcr-publish.yml)
-[![Docker Hub Publish](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-hub-publish.yml/badge.svg)](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-hub-publish.yml)
+[![Docker Multi-Arch Build](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-arm-build.yml/badge.svg)](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-arm-build.yml)
+[![Docker AMD64 Build](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-amd64-unified.yml/badge.svg)](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-amd64-unified.yml)
+
+## 🚀 Quick Start
+
+```bash
+# 1. Konfiguration vorbereiten
+cp config/.env.example .env
+
+# 2. Container starten (automatische Architektur-Erkennung!)
+docker-compose up -d
+
+# 3. Öffne http://localhost:5000
+```
+
+## 🏗️ Multi-Architecture Support
+
+SchulBuddy unterstützt automatisch:
+- **AMD64**: Normale PCs, Server (4 Gunicorn Worker)
+- **ARM**: Raspberry Pi, Apple M1/M2 (2 Gunicorn Worker)
+
+Docker wählt automatisch die richtige Architektur für dein System!
 
 ## 📁 Projektstruktur
 
 ```
 schulbuddy/
-├── 📄 app.py                    # Haupt-Flask-Anwendung
+├── � config/                   # Konfigurationsdateien
+│   ├── .env.example            # Environment-Variablen Vorlage
+│   ├── .env.template           # Alternative Vorlage
+│   └── nginx.conf              # Nginx Konfiguration
+├── 📁 docs/                     # Dokumentation
+│   ├── ARM_SUPPORT.md          # ARM-Support Details
+│   ├── DOCKER_README.md        # Docker Setup Guide
+│   ├── MULTI-ARCH-README.md    # Multi-Architecture Guide
+│   └── SECURITY.md             # Sicherheitsrichtlinien
+├── 📁 scripts/                  # Utility Scripts
+│   ├── build-multiarch.ps1     # Multi-Arch Build (PowerShell)
+│   ├── build-multiarch.sh      # Multi-Arch Build (Bash)
+│   ├── setup-env.ps1           # Environment Setup (PowerShell)
+│   └── setup-env.sh            # Environment Setup (Bash)
+├── �📄 app.py                    # Haupt-Flask-Anwendung
 ├── 📄 config.py                 # Konfigurationsverwaltung
 ├── 📄 models.py                 # Datenbankmodelle
-├── 📄 wsgi.py                   # WSGI-Einstiegspunkt für Produktionsserver
-├── 📄 api_security.py           # API-Sicherheitsimplementierung
+├── 📄 wsgi.py                   # WSGI-Einstiegspunkt
+├── 📄 api_security.py           # API-Sicherheit
 ├── 📄 requirements.txt          # Python-Abhängigkeiten
-├── 🐳 Dockerfile                # Docker-Container-Definition
+├── 🐳 Dockerfile                # AMD64 Container
+├── 🐳 Dockerfile.arm            # ARM Container
 ├── 🐳 docker-compose.yml        # Service-Orchestrierung
-├── 📄 gunicorn.conf.py          # Gunicorn-Konfiguration
+├── 📄 entrypoint.sh             # Container Startup
+└── 📄 gunicorn.conf.py          # Gunicorn-Konfiguration
 ├── 📄 entrypoint.sh             # Container-Einstiegsskript
 ├── 📄 Makefile                  # Build-Automatisierung
 ├── 📁 .github/workflows/        # CI/CD Workflows
@@ -353,9 +389,22 @@ Jeder Beitrag wird geschätzt!
 
 Bei Fragen oder Problemen:
 
-1. Prüfe die [Dokumentation](docs/)
-2. Schaue in die [Issues](../../issues)
-3. Erstelle ein neues Issue mit detaillierter Beschreibung
+1. **Vollständige Dokumentation**: [docs/INDEX.md](docs/INDEX.md)
+2. **Multi-Architecture Guide**: [docs/MULTI-ARCH-README.md](docs/MULTI-ARCH-README.md)
+3. **Docker Setup**: [docs/DOCKER_README.md](docs/DOCKER_README.md)
+4. **Sicherheit**: [docs/SECURITY.md](docs/SECURITY.md)
+5. **ARM Support**: [docs/ARM_SUPPORT.md](docs/ARM_SUPPORT.md)
+6. **GitHub Issues**: [Issues](../../issues)
+
+## 📚 Dokumentationsübersicht
+
+| Thema | Datei | Beschreibung |
+|-------|-------|--------------|
+| 🏠 **Hauptindex** | [docs/INDEX.md](docs/INDEX.md) | Übersicht aller Dokumentation |
+| 🏗️ **Multi-Arch** | [docs/MULTI-ARCH-README.md](docs/MULTI-ARCH-README.md) | AMD64 & ARM Support |
+| 🐳 **Docker Setup** | [docs/DOCKER_README.md](docs/DOCKER_README.md) | Detaillierte Installation |
+| 🛡️ **Sicherheit** | [docs/SECURITY.md](docs/SECURITY.md) | Sicherheitsrichtlinien |
+| 🔋 **ARM Support** | [docs/ARM_SUPPORT.md](docs/ARM_SUPPORT.md) | Raspberry Pi & Apple Silicon |
 
 ---
 
