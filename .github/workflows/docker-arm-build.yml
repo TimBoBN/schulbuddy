@@ -1,30 +1,18 @@
 name: ARM Docker Build
 
 on:
-  # Manuelle Ausführung - da ARM-Builds sehr lange dauern können
+  push:
+    branches: [ main, dev ]
+    tags:
+      - 'v*' # Wird ausgeführt, wenn Tags wie v1.0.0, v1.1.0 etc. gepusht werden
+  
+  # Manuelle Ausführung über die GitHub UI ermöglichen
   workflow_dispatch:
     inputs:
       version_tag:
-        description: 'Version tag für das Docker Image (z.B. v1.1.0, dev)'
+        description: 'Version tag für das Docker Image (z.B. v1.1.0)'
         required: true
         default: 'arm-latest'
-      build_type:
-        description: 'Build-Typ (release, dev)'
-        required: true
-        default: 'release'
-        type: choice
-        options:
-          - release
-          - dev
-
-  # Nur ausführen, wenn ARM-spezifische Dateien geändert wurden
-  push:
-    branches: [ main, dev ]
-    paths:
-      - '**/Dockerfile.arm'
-      - '**/ARM_SUPPORT.md'
-      - '**/requirements-arm.txt'
-      - '**/.github/workflows/docker-arm-build.yml'
 
 jobs:
   arm-docker-build:
@@ -80,22 +68,21 @@ jobs:
           
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             # Manueller Trigger - verwende Input
-            echo "VERSION=${{ github.event.inputs.version_tag }}" >> $GITHUB_OUTPUT
-            echo "BUILD_TYPE=${{ github.event.inputs.build_type }}" >> $GITHUB_OUTPUT
-            echo "Using manual version: ${{ github.event.inputs.version_tag }}"
+            VERSION="${{ github.event.inputs.version_tag }}"
+            echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+            echo "Manuelle Version: ${VERSION}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Tag-Push - verwende Tag
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+            echo "Tag-basierte Version: ${VERSION}"
           else
             # Branch-Push - verwende Branch-Namen
-            BRANCH=${GITHUB_REF#refs/heads/}
-            VERSION="${BRANCH}-arm-$(date +'%Y%m%d%H%M%S')"
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+            VERSION="${BRANCH}-${TIMESTAMP}"
             echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
-            
-            if [[ "$BRANCH" == "main" ]]; then
-              echo "BUILD_TYPE=release" >> $GITHUB_OUTPUT
-            else
-              echo "BUILD_TYPE=dev" >> $GITHUB_OUTPUT
-            fi
-            
-            echo "Using generated version: ${VERSION}"
+            echo "Branch-basierte Version: ${VERSION} (Branch: ${BRANCH})"
           fi
           
           # Repository Owner in Kleinbuchstaben für Docker-Kompatibilität
@@ -104,6 +91,9 @@ jobs:
           # Debug-Ausgabe für Verifizierung
           echo "Repository owner (original): ${{ github.repository_owner }}"
           echo "Repository owner (lowercase): ${OWNER}"
+          
+          # Finale Ausgabe
+          echo "Finaler Image-Tag für ARM: ${VERSION}-arm"
       
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
