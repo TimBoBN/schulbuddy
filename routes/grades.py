@@ -127,12 +127,15 @@ def add_grade_to_task(task_id):
             return render_template("add_grade_to_task.html", task=task)
         
         # Note erstellen
+        from utils.app_settings import get_current_school_year, get_current_semester
         grade = Grade(
             subject=task.subject,
             grade=grade_value,
             grade_type="task",
             description=description,
             task_id=task.id,
+            semester=get_current_semester(),
+            school_year=get_current_school_year(),
             user_id=current_user.id
         )
         
@@ -168,58 +171,24 @@ def semester_grades():
     # Alle Noten des Users
     all_grades = Grade.query.filter_by(user_id=current_user.id).order_by(Grade.timestamp.desc()).all()
     
-    # Verfügbare Schuljahre bestimmen
+    # Verfügbare Schuljahre aus den tatsächlichen school_year Feldern bestimmen
     available_years = set()
     for grade in all_grades:
-        grade_year = grade.timestamp.year
-        grade_month = grade.timestamp.month
-        
-        # Bestimme Schuljahr (September bis August)
-        if grade_month >= 9:  # Sep-Dez
-            school_year = f"{grade_year}/{str(grade_year + 1)[-2:]}"
-        else:  # Jan-Aug
-            school_year = f"{grade_year - 1}/{str(grade_year)[-2:]}"
-        
-        available_years.add(school_year)
+        if grade.school_year:
+            available_years.add(grade.school_year)
     
     available_years = sorted(list(available_years), reverse=True)
     
     # Parameter aus URL
     semester = int(request.args.get('semester', 2))  # Standard: 2. Halbjahr
-    school_year = request.args.get('school_year', available_years[0] if available_years else '2024/25')
+    school_year = request.args.get('school_year', available_years[0] if available_years else '2025/26')
     
-    # Parse Schuljahr (z.B. "2024/25" -> 2024, 2025)
-    if '/' in school_year:
-        start_year, end_year_short = school_year.split('/')
-        start_year = int(start_year)
-        end_year = int('20' + end_year_short)
-    else:
-        # Fallback für alte Format
-        start_year = int(school_year)
-        end_year = start_year + 1
-    
-    # Filtere nach Halbjahr und Schuljahr
+    # Filtere nach Halbjahr und Schuljahr (verwende das school_year Feld!)
     semester_grades = []
     for grade in all_grades:
-        grade_year = grade.timestamp.year
-        grade_month = grade.timestamp.month
-        
-        # Bestimme Schuljahr der Note
-        if grade_month >= 9:  # Sep-Dez
-            note_school_year_start = grade_year
-        else:  # Jan-Aug
-            note_school_year_start = grade_year - 1
-        
-        # Prüfe ob Note zum gewählten Schuljahr gehört
-        if note_school_year_start == start_year:
-            # Bestimme Halbjahr: 1. Halbjahr = Sep-Jan, 2. Halbjahr = Feb-Aug
-            if grade_month >= 9 or grade_month <= 1:
-                grade_semester = 1
-            else:
-                grade_semester = 2
-            
-            if grade_semester == semester:
-                semester_grades.append(grade)
+        # Prüfe ob Note zum gewählten Schuljahr und Semester gehört
+        if grade.school_year == school_year and grade.semester == semester:
+            semester_grades.append(grade)
     
     # Gruppiere nach Fach
     grades_by_subject = defaultdict(list)
@@ -274,14 +243,13 @@ def certificate_grades():
         grade_type="certificate"
     ).all()
     
-    # Gruppiere nach Schuljahr und Halbjahr
+    # Gruppiere nach Schuljahr und Halbjahr (verwende die tatsächlichen Felder!)
     grades_by_period = defaultdict(lambda: {'grades': [], 'average': 0})
     
     for grade in certificate_grades:
-        # Verwende das Jahr der Note als Schuljahr
-        school_year = grade.timestamp.year
-        # Vereinfacht: 1. Halbjahr = Aug-Jan, 2. Halbjahr = Feb-Jul
-        semester = 1 if grade.timestamp.month >= 8 or grade.timestamp.month <= 1 else 2
+        # Verwende die tatsächlichen school_year und semester Felder
+        school_year = grade.school_year or "Unbekannt"
+        semester = grade.semester or 1
         
         period_key = f"{school_year}-{semester}"
         grades_by_period[period_key]['grades'].append(grade)
@@ -315,6 +283,10 @@ def add_certificate_grades():
     if request.method == 'POST':
         grades_added = 0
         
+        # Hole Schuljahr und Semester aus dem Formular
+        form_school_year = request.form.get('school_year', get_current_school_year())
+        form_semester = int(request.form.get('semester', get_current_semester()))
+        
         for subject_key, subject_name in Config.SUBJECTS.items():
             grade_value = request.form.get(f'grade_{subject_key}')
             if grade_value:
@@ -329,16 +301,20 @@ def add_certificate_grades():
                             flash(f"Bitte nur Noten in 0.5er Schritten eingeben für {subject_key} (1.0, 1.5, 2.0, ...)", "error")
                             return redirect(url_for('grades.add_certificate_grades'))
                             
-                        # Prüfe ob bereits eine Zeugnisnote für dieses Fach existiert
+                        # Prüfe ob bereits eine Zeugnisnote für dieses Fach, Schuljahr und Semester existiert
                         existing_grade = Grade.query.filter_by(
                             user_id=current_user.id,
                             subject=subject_key,
-                            grade_type='certificate'
+                            grade_type='certificate',
+                            school_year=form_school_year,
+                            semester=form_semester
                         ).first()
                         
                         if existing_grade:
                             # Update existing grade
                             existing_grade.grade = grade_value
+                            existing_grade.semester = form_semester
+                            existing_grade.school_year = form_school_year
                             existing_grade.timestamp = datetime.utcnow()
                         else:
                             # Create new grade
@@ -347,6 +323,8 @@ def add_certificate_grades():
                                 grade=grade_value,
                                 grade_type='certificate',
                                 description='Zeugnisnote',
+                                semester=form_semester,
+                                school_year=form_school_year,
                                 user_id=current_user.id
                             )
                             db.session.add(grade)
@@ -427,14 +405,13 @@ def grade_progress():
                 'improvement': round(first_grade - last_grade, 2)
             }
     
-    # Berechne Semester-Durchschnitte
-    semester_averages = defaultdict(lambda: {'grades': [], 'average': 0, 'school_year': 0, 'semester': 0})
+    # Berechne Semester-Durchschnitte (verwende die tatsächlichen Felder!)
+    semester_averages = defaultdict(lambda: {'grades': [], 'average': 0, 'school_year': '', 'semester': 0})
     
     for grade in grades:
-        # Verwende das Jahr der Note als Schuljahr
-        school_year = grade.timestamp.year
-        # Vereinfacht: 1. Halbjahr = Aug-Jan, 2. Halbjahr = Feb-Jul
-        semester = 1 if grade.timestamp.month >= 8 or grade.timestamp.month <= 1 else 2
+        # Verwende die tatsächlichen school_year und semester Felder
+        school_year = grade.school_year or "Unbekannt"
+        semester = grade.semester or 1
         
         period_key = f"{school_year}-{semester}"
         semester_averages[period_key]['grades'].append(grade)
