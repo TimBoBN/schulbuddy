@@ -8,10 +8,6 @@ qrcode==7.4.2
 xlsxwriter==3.2.5
 gunicorn==23.0.0
 
-# PDF und Excel Export Dependencies
-reportlab==4.0.4
-pandas==2.3.1
-Pillow==10.0.0
-
-# Folgende Pakete werden über Dockerfile-Befehle gehandhabt
-# Pillow - auch hier explizit installiert für ARM-Kompatibilität
+# Folgende Pakete werden über Stub-Module oder Dockerfile-Befehle gehandhabt
+# Pillow - in Dockerfile separat installiert mit den benötigten Abhängigkeiten
+# Pandas und Reportlab - durch Stubs ersetzt für schnellere Installation
