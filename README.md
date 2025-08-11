@@ -328,7 +328,7 @@ Alle unsere Docker Images unterstützen folgende Plattformen:
 
 ## 📖 Erweiterte Dokumentation
 
-- [🔒 Sicherheitsrichtlinie & CVE-Übersicht](SECURITY.md)
+- [🔒 Sicherheitsrichtlinie & CVE-Übersicht](docs/SECURITY.md)
 - [🐳 Docker-Anleitung](docs/DOCKER_README.md)
 - [🏠 Vollständige Dokumentation](docs/INDEX.md)
 
