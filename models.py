@@ -52,6 +52,12 @@ class User(UserMixin, db.Model):
     statistics = db.relationship('UserStatistic', backref='user', lazy=True, cascade='all, delete-orphan')
     activity_logs = db.relationship('ActivityLog', backref='user', lazy=True, cascade='all, delete-orphan')
     
+    # WebUntis credentials (verschlüsselt) - optional
+    webuntis_server = db.Column(db.String(200), nullable=True)
+    webuntis_school = db.Column(db.String(200), nullable=True)
+    webuntis_username = db.Column(db.String(200), nullable=True)
+    webuntis_password_enc = db.Column(db.Text, nullable=True)  # encrypted password
+
     def set_password(self, password):
         """Setze verschlüsseltes Passwort"""
         self.password_hash = generate_password_hash(password)

@@ -115,9 +115,23 @@
                 <div class="navbar-nav ms-auto">
                     <a class="nav-link" href="{{ url_for('main.index') }}">Dashboard</a>
                     <a class="nav-link" href="{{ url_for('tasks.tasks_overview') }}">Aufgaben</a>
-                    <a class="nav-link" href="{{ url_for('timer.timer_page') }}">Timer</a>
-                    <a class="nav-link" href="{{ url_for('tasks.archive') }}">Archiv</a>
-                    <a class="nav-link" href="{{ url_for('tasks.calendar') }}">Kalender</a>
+                    <!-- Stundenplan statt Timer -->
+                    <a class="nav-link" href="{{ url_for('main.timetable_page') }}">Stundenplan</a>
+
+                    <!-- Kalender als Dropdown: Kalender-Link + Timer im Dropdown -->
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="calendarDropdown" role="button" data-bs-toggle="dropdown">
+                            Kalender
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('tasks.calendar') }}">
+                                <i class="fas fa-calendar-day me-2"></i>Kalender anzeigen
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('timer.timer_page') }}">
+                                <i class="fas fa-stopwatch me-2"></i>Timer
+                            </a></li>
+                        </ul>
+                    </div>
                     <div class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="gradesDropdown" role="button" data-bs-toggle="dropdown">
                             Noten
@@ -150,6 +164,10 @@
                             </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('statistics.notifications') }}">
                                 <i class="fas fa-bell me-2"></i>Benachrichtigungen
+                            </a></li>
+                            <!-- Archiv unter Statistiken eingefügt -->
+                            <li><a class="dropdown-item" href="{{ url_for('tasks.archive') }}">
+                                <i class="fas fa-archive me-2"></i>Archiv
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('tasks.api_key_management') }}">
