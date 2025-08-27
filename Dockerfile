@@ -13,15 +13,28 @@ WORKDIR /app
 # Requirements kopieren (verwende ARM-optimierte Requirements für alle Architekturen)
 COPY requirements-arm.txt requirements.txt ./
 
-# Multi-Architektur-Dependencies installieren
+# Set non-interactive frontend to avoid prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies for cryptography and other packages
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    build-essential \
+    python3-dev \
+    libssl-dev \
+    libffi-dev \
+    pkg-config \
     gcc g++ make \
     libatlas-base-dev \
-    zlib1g-dev libjpeg-dev libpng-dev libtiff-dev && \
-    pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements-arm.txt && \
+    zlib1g-dev libjpeg-dev libpng-dev libtiff-dev \
+    ca-certificates && \
     rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip tools first to ensure we get prebuilt wheels
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements-arm.txt
 
 # Production Stage
 FROM python:3.11.7-slim
