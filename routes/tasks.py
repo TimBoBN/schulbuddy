@@ -332,7 +332,8 @@ def task_detail(task_id):
         flash("Aufgabe nicht gefunden", "error")
         return redirect(url_for('main.index'))
     
-    return render_template("task_detail.html", task=task)
+    from datetime import date
+    return render_template("task_detail.html", task=task, subjects=Config.SUBJECTS, today=date.today())
 
 @tasks_bp.route("/complete_task/<int:task_id>", methods=["POST"])
 @login_required
