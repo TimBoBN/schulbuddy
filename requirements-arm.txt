@@ -8,6 +8,7 @@ qrcode==7.4.2
 xlsxwriter==3.2.5
 gunicorn==23.0.0
 cryptography
+webuntis
 # Folgende Pakete werden über Stub-Module oder Dockerfile-Befehle gehandhabt
 # Pillow - in Dockerfile separat installiert mit den benötigten Abhängigkeiten
 # Pandas und Reportlab - durch Stubs ersetzt für schnellere Installation
