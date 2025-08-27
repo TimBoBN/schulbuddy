@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container mt-4">
-    <div class="page-header">
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
         <h1>📅 Kalender</h1>
         <a href="/" class="btn btn-secondary">
             ← Zurück zum Dashboard
@@ -17,8 +17,8 @@
             <h5 class="mb-0">🔍 Filter</h5>
         </div>
         <div class="card-body">
-            <div class="calendar-filter-grid">
-                <div class="filter-field">
+            <div class="row g-3">
+                <div class="col-md-4">
                     <label class="form-label">Nach Fach filtern:</label>
                     <select class="form-select" id="subject-filter">
                         <option value="">Alle Fächer</option>
@@ -27,7 +27,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="filter-field">
+                <div class="col-md-4">
                     <label class="form-label">Nach Typ filtern:</label>
                     <select class="form-select" id="type-filter">
                         <option value="">Alle Typen</option>
@@ -37,11 +37,15 @@
                         <option value="grade">🏫 Noten</option>
                     </select>
                 </div>
-                <div class="filter-actions">
+                <div class="col-md-4 d-flex flex-column">
                     <label class="form-label">Aktionen:</label>
-                    <div class="btn-group-mobile">
-                        <button class="btn btn-primary" onclick="applyFilters()">Filter anwenden</button>
-                        <button class="btn btn-secondary" onclick="clearFilters()">Zurücksetzen</button>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-primary flex-fill" onclick="applyFilters()">
+                            <i class="fas fa-search me-1"></i>Filter anwenden
+                        </button>
+                        <button class="btn btn-outline-secondary flex-fill" onclick="clearFilters()">
+                            <i class="fas fa-times me-1"></i>Zurücksetzen
+                        </button>
                     </div>
                     <div class="mt-2">
                         <small class="text-muted" id="filter-stats">Zeige alle Events</small>
@@ -72,12 +76,12 @@
             
             <!-- Kalender Container -->
             <div class="calendar-container">
-                <div class="calendar-header">
-                    <h4 class="calendar-title" id="calendar-title">Loading...</h4>
-                    <div class="calendar-nav">
-                        <button class="calendar-nav-btn" onclick="previousMonth()">‹ Vorheriger</button>
-                        <button class="calendar-nav-btn" onclick="nextMonth()">Nächster ›</button>
-                        <button class="calendar-nav-btn" onclick="goToToday()">Heute</button>
+                <div class="calendar-header d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="calendar-title mb-0" id="calendar-title">Loading...</h4>
+                    <div class="calendar-nav d-flex gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="previousMonth()">‹ Vorheriger</button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="nextMonth()">Nächster ›</button>
+                        <button class="btn btn-primary btn-sm" onclick="goToToday()">Heute</button>
                     </div>
                 </div>
                 

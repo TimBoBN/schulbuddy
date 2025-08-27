@@ -119,61 +119,61 @@
                     <a class="nav-link" href="{{ url_for('main.timetable_page') }}">Stundenplan</a>
 
                     <!-- Kalender als Dropdown: Kalender-Link + Timer im Dropdown -->
-                    <div class="nav-item dropdown">
+                    <div class="nav-item dropdown me-2">
                         <a class="nav-link dropdown-toggle" href="#" id="calendarDropdown" role="button" data-bs-toggle="dropdown">
                             Kalender
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('tasks.calendar') }}">
+                            <li><a class="dropdown-item py-2" href="{{ url_for('tasks.calendar') }}">
                                 <i class="fas fa-calendar-day me-2"></i>Kalender anzeigen
                             </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('timer.timer_page') }}">
+                            <li><a class="dropdown-item py-2" href="{{ url_for('timer.timer_page') }}">
                                 <i class="fas fa-stopwatch me-2"></i>Timer
                             </a></li>
                         </ul>
                     </div>
-                    <div class="nav-item dropdown">
+                    <div class="nav-item dropdown me-2">
                         <a class="nav-link dropdown-toggle" href="#" id="gradesDropdown" role="button" data-bs-toggle="dropdown">
                             Noten
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('grades.semester_grades') }}">
+                            <li><a class="dropdown-item py-2" href="{{ url_for('grades.semester_grades') }}">
                                 <i class="fas fa-chart-bar me-2"></i>Halbjahres-Noten
                             </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('grades.certificate_grades') }}">
+                            <li><a class="dropdown-item py-2" href="{{ url_for('grades.certificate_grades') }}">
                                 <i class="fas fa-certificate me-2"></i>Zeugnisnoten
                             </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('grades.grade_progress') }}">
+                            <li><a class="dropdown-item py-2" href="{{ url_for('grades.grade_progress') }}">
                                 <i class="fas fa-chart-line me-2"></i>Noten-Verlauf
                             </a></li>
                         </ul>
                     </div>
-                    <div class="nav-item dropdown">
+                    <div class="nav-item dropdown me-2">
                         <a class="nav-link dropdown-toggle" href="#" id="statsDropdown" role="button" data-bs-toggle="dropdown">
                             Statistiken
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('statistics.statistics') }}">
+                            <li><a class="dropdown-item py-2" href="{{ url_for('statistics.statistics') }}">
                                 <i class="fas fa-chart-pie me-2"></i>Übersicht
                             </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('statistics.achievements') }}">
+                            <li><a class="dropdown-item py-2" href="{{ url_for('statistics.achievements') }}">
                                 <i class="fas fa-trophy me-2"></i>Achievements
                             </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('statistics.streaks') }}">
+                            <li><a class="dropdown-item py-2" href="{{ url_for('statistics.streaks') }}">
                                 <i class="fas fa-fire me-2"></i>Lernstreak
                             </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('statistics.notifications') }}">
+                            <li><a class="dropdown-item py-2" href="{{ url_for('statistics.notifications') }}">
                                 <i class="fas fa-bell me-2"></i>Benachrichtigungen
                             </a></li>
                             <!-- Archiv unter Statistiken eingefügt -->
-                            <li><a class="dropdown-item" href="{{ url_for('tasks.archive') }}">
+                            <li><a class="dropdown-item py-2" href="{{ url_for('tasks.archive') }}">
                                 <i class="fas fa-archive me-2"></i>Archiv
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('tasks.api_key_management') }}">
+                            <li><a class="dropdown-item py-2" href="{{ url_for('tasks.api_key_management') }}">
                                 <i class="fas fa-key me-2"></i>API-Schlüssel
                             </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('statistics.export_data') }}">
+                            <li><a class="dropdown-item py-2" href="{{ url_for('statistics.export_data') }}">
                                 <i class="fas fa-download me-2"></i>Daten exportieren
                             </a></li>
                         </ul>
