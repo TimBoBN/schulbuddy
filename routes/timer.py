@@ -104,28 +104,28 @@ def stop_timer():
             user_id=current_user.id,
             completed=False
         ).first()
-        
+
         if not active_session:
             return jsonify({
                 'success': False,
                 'message': 'Keine aktive Session gefunden!'
             }), 400
-        
+
         # Session beenden
         active_session.end_session()
         db.session.commit()
-        
+
         # Streak aktualisieren
         current_user.update_streak()
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'session': active_session.to_dict(),
             'points_earned': active_session._calculate_points(),
             'message': f'Session beendet! +{active_session._calculate_points()} Punkte'
         })
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -135,33 +135,78 @@ def stop_timer():
 @timer_bp.route('/timer/pause', methods=['POST'])
 @login_required
 def pause_timer():
-    """Timer pausieren (für Pausen)"""
+    """Timer pausieren (Session pausiert, kann später fortgesetzt werden)"""
     try:
         # Aktive Session finden
         active_session = StudySession.query.filter_by(
             user_id=current_user.id,
             completed=False
         ).first()
-        
+
         if not active_session:
             return jsonify({
                 'success': False,
                 'message': 'Keine aktive Session gefunden!'
             }), 400
-        
-        # Session pausieren (temporär beenden)
-        if not active_session.end_time:
-            active_session.end_time = datetime.utcnow()
-            duration = active_session.end_time - active_session.start_time
-            active_session.actual_duration_seconds = int(duration.total_seconds())
-        
+
+        # Session pausieren: setze is_paused, paused_at und accumulate elapsed seconds
+        if getattr(active_session, 'is_paused', False):
+            return jsonify({'success': False, 'message': 'Session ist bereits pausiert.'}), 400
+
+        now = datetime.utcnow()
+        # Berechne seit start_time verstrichene Sekunden
+        elapsed = 0
+        if active_session.start_time:
+            elapsed = int((now - active_session.start_time).total_seconds())
+
+        # Addiere zu accumulated_seconds und markiere als pausiert
+        active_session.accumulated_seconds = int((active_session.accumulated_seconds or 0) + elapsed)
+        active_session.is_paused = True
+        active_session.paused_at = now
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'session': active_session.to_dict(),
             'message': 'Timer pausiert'
         })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Fehler beim Pausieren: {str(e)}'
+        }), 500
+
+
+@timer_bp.route('/timer/resume', methods=['POST'])
+@login_required
+def resume_timer():
+    """Resume a paused session without creating a new one"""
+    try:
+        active_session = StudySession.query.filter_by(
+            user_id=current_user.id,
+            completed=False
+        ).first()
+
+        if not active_session:
+            return jsonify({'success': False, 'message': 'Keine aktive (pausierte) Session gefunden!'}), 400
+
+        if not getattr(active_session, 'is_paused', False):
+            return jsonify({'success': False, 'message': 'Session ist nicht pausiert.'}), 400
+
+        # Resume: setze is_paused False und setze start_time neu (ab jetzt läuft die Zeit wieder)
+        active_session.is_paused = False
+        active_session.paused_at = None
+        # Startzeit neu setzen um die laufende Periode zu messen
+        active_session.start_time = datetime.utcnow()
+
+        db.session.commit()
+
+        return jsonify({'success': True, 'session': active_session.to_dict(), 'message': 'Timer fortgesetzt'})
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Fehler beim Fortsetzen: {str(e)}'}), 500
         
     except Exception as e:
         return jsonify({
@@ -179,11 +224,21 @@ def timer_status():
     ).first()
     
     if active_session:
-        # Berechne aktuelle Laufzeit
-        current_time = datetime.utcnow()
-        elapsed = current_time - active_session.start_time
-        elapsed_seconds = int(elapsed.total_seconds())
-        
+        # Wenn die Session beendet wurde, als inaktiv behandeln
+        if getattr(active_session, 'end_time', None) is not None or active_session.completed:
+            return jsonify({'active': False})
+
+        # Berechne aktuelle Laufzeit: accumulated_seconds + (now - start_time) falls nicht pausiert
+        accumulated = int(getattr(active_session, 'accumulated_seconds', 0) or 0)
+        if getattr(active_session, 'is_paused', False):
+            elapsed_seconds = accumulated
+        else:
+            current_time = datetime.utcnow()
+            elapsed = 0
+            if active_session.start_time:
+                elapsed = int((current_time - active_session.start_time).total_seconds())
+            elapsed_seconds = accumulated + elapsed
+
         return jsonify({
             'active': True,
             'session': active_session.to_dict(),
@@ -249,6 +304,62 @@ def quick_start_timer(session_type):
     except Exception as e:
         flash(f'Fehler beim Starten: {str(e)}', 'error')
         return redirect(url_for('timer.timer_page'))
+
+
+@timer_bp.route('/timer/delete/<int:session_id>', methods=['POST'])
+@login_required
+def delete_session(session_id):
+    """Lösche eine einzelne Timer-Session des aktuellen Benutzers"""
+    try:
+        session = StudySession.query.filter_by(id=session_id, user_id=current_user.id).first()
+        if not session:
+            return jsonify({'success': False, 'message': 'Session nicht gefunden.'}), 404
+
+        # Nur abgeschlossene Sessions löschen (Sicherheit)
+        if not session.completed:
+            return jsonify({'success': False, 'message': 'Laufende Session kann nicht gelöscht werden.'}), 400
+
+        db.session.delete(session)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Session gelöscht.'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Fehler beim Löschen: {str(e)}'}), 500
+
+
+@timer_bp.route('/timer/delete-old', methods=['POST'])
+@login_required
+def delete_old_sessions():
+    """Bulk-Löschen: löscht alle Sessions älter als X Tage für aktuellen Benutzer"""
+    try:
+        days = request.args.get('days') or request.form.get('days')
+        if not days:
+            return jsonify({'success': False, 'message': 'Parameter days fehlt.'}), 400
+
+        try:
+            days_int = int(days)
+        except ValueError:
+            return jsonify({'success': False, 'message': 'Ungültiger days-Parameter.'}), 400
+
+        cutoff = datetime.utcnow() - timedelta(days=days_int)
+
+        sessions_to_delete = StudySession.query.filter(
+            StudySession.user_id == current_user.id,
+            StudySession.completed == True,
+            StudySession.start_time < cutoff
+        ).all()
+
+        count = 0
+        for s in sessions_to_delete:
+            db.session.delete(s)
+            count += 1
+
+        db.session.commit()
+        return jsonify({'success': True, 'message': f'{count} Sessions gelöscht.'})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Fehler beim Bulk-Löschen: {str(e)}'}), 500
 
 
 def auto_cleanup_old_sessions():

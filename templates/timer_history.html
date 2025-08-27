@@ -8,9 +8,14 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-history"></i> Timer-Verlauf</h2>
-                <a href="{{ url_for('timer.timer_page') }}" class="btn btn-primary">
-                    <i class="fas fa-arrow-left"></i> Zurück zum Timer
-                </a>
+                <div>
+                    <a href="{{ url_for('timer.timer_page') }}" class="btn btn-primary me-2">
+                        <i class="fas fa-arrow-left"></i> Zurück zum Timer
+                    </a>
+                    <div class="btn-group">
+                        <button class="btn btn-danger" id="bulk-delete-btn">Ältere Sessions löschen</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -20,18 +25,29 @@
             {% if sessions.items %}
             <div class="card">
                 <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="mb-0">Verlauf ({{ sessions.total }} Sessions)</h5>
+                            <small class="text-muted">Letzte Aktivitäten</small>
+                        </div>
+                        <div>
+                            <a class="btn btn-sm btn-outline-secondary me-2" href="#" onclick="window.print();return false;">Drucken</a>
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('timer.timer_page') }}">Zurück</a>
+                        </div>
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover table-sm align-middle">
                             <thead>
                                 <tr>
-                                    <th>Datum & Zeit</th>
+                                    <th class="w-25">Datum & Zeit</th>
                                     <th>Typ</th>
                                     <th>Fach</th>
                                     <th>Aufgabe</th>
                                     <th>Geplant</th>
                                     <th>Tatsächlich</th>
                                     <th>Punkte</th>
-                                    <th>Notizen</th>
+                                    <th class="w-25">Notizen</th>
+                                    <th class="text-end">Aktion</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -73,14 +89,21 @@
                                     <td>
                                         <span class="badge bg-warning">+{{ session._calculate_points() }}</span>
                                     </td>
-                                    <td>
+                                    <td style="max-width:240px;">
                                         {% if session.notes %}
-                                            <small>{{ session.notes[:50] }}{% if session.notes|length > 50 %}...{% endif %}</small>
+                                            <div class="text-truncate" style="max-width:220px;" title="{{ session.notes|e }}">{{ session.notes[:100] }}{% if session.notes|length > 100 %}...{% endif %}</div>
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
-                                </tr>
+                                    <td class="text-end">
+                                    <td class="text-end">
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-danger delete-session-btn" data-session-id="{{ session.id }}" title="Session löschen">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -122,6 +145,45 @@
                         </ul>
                     </nav>
                     {% endif %}
+                    <!-- Bulk delete modal trigger & script -->
+                    <script>
+                        function setupDeleteHandlers() {
+                            document.querySelectorAll('.delete-session-btn').forEach(btn => {
+                                btn.addEventListener('click', function() {
+                                    const id = this.getAttribute('data-session-id');
+                                    if (!confirm('Diese Session wirklich löschen?')) return;
+                                    fetch('/timer/delete/' + id, { method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'} })
+                                        .then(r => r.json())
+                                        .then(data => {
+                                            if (data.success) {
+                                                location.reload();
+                                            } else {
+                                                alert(data.message || 'Fehler beim Löschen');
+                                            }
+                                        }).catch(e => alert('Fehler: ' + e));
+                                });
+                            });
+                        }
+
+                        document.getElementById('bulk-delete-btn').addEventListener('click', function() {
+                            const days = prompt('Alle Sessions löschen, die älter sind als wie viele Tage? (z.B. 30)');
+                            if (!days) return;
+                            if (!confirm('Alle Sessions löschen, die älter sind als ' + days + ' Tage?')) return;
+                            fetch('/timer/delete-old?days=' + encodeURIComponent(days), { method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'} })
+                                .then(r => r.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        alert(data.message || 'Gelöscht');
+                                        location.reload();
+                                    } else {
+                                        alert(data.message || 'Fehler beim Löschen');
+                                    }
+                                }).catch(e => alert('Fehler: ' + e));
+                        });
+
+                        // Setup handlers on DOM ready
+                        document.addEventListener('DOMContentLoaded', setupDeleteHandlers);
+                    </script>
                 </div>
             </div>
             {% else %}
