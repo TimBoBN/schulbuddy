@@ -40,9 +40,15 @@
                             <button type="button" class="btn btn-danger btn-lg" onclick="stopTimer()">
                                 <i class="fas fa-stop"></i> Stoppen
                             </button>
+                            {% if active_session.is_paused %}
+                            <button type="button" class="btn btn-success btn-lg" onclick="resumeTimer()">
+                                <i class="fas fa-play"></i> Fortsetzen
+                            </button>
+                            {% else %}
                             <button type="button" class="btn btn-warning btn-lg" onclick="pauseTimer()">
                                 <i class="fas fa-pause"></i> Pausieren
                             </button>
+                            {% endif %}
                         </div>
                     </div>
                     {% else %}
@@ -234,8 +240,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Timer-Status laden
     updateTimerStatus();
     
-    // Regelmäßiges Update wenn Timer läuft
-    setInterval(updateTimerStatus, 1000);
+    // Regelmäßiges Update wenn Timer läuft (Referenz speichern, damit wir es clearen können)
+    timerInterval = setInterval(updateTimerStatus, 1000);
     
     // Form-Handler
     const timerForm = document.getElementById('timer-form');
@@ -307,6 +313,11 @@ function updateTimerStatus() {
                 isRunning = true;
             } else {
                 isRunning = false;
+                // Wenn kein aktiver Timer mehr vorhanden ist, stoppe das Polling
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
             }
         })
         .catch(error => console.error('Timer-Status Error:', error));
@@ -345,17 +356,26 @@ function startTimer() {
 }
 
 function stopTimer() {
+    console.log('stopTimer() called'); // Debug-Log
+    
     fetch('/timer/stop', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-        }
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Stop response status:', response.status); // Debug-Log
+        return response.json();
+    })
     .then(data => {
+        console.log('Stop response data:', data); // Debug-Log
         if (data.success) {
             showNotification(data.message, 'success');
             playTimerSound();
+            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
             location.reload();
         } else {
             showNotification(data.message, 'error');
@@ -368,16 +388,25 @@ function stopTimer() {
 }
 
 function pauseTimer() {
+    console.log('pauseTimer() called'); // Debug-Log
+    
     fetch('/timer/pause', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-        }
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Pause response status:', response.status); // Debug-Log
+        return response.json();
+    })
     .then(data => {
+        console.log('Pause response data:', data); // Debug-Log
         if (data.success) {
             showNotification(data.message, 'info');
+            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
             location.reload();
         } else {
             showNotification(data.message, 'error');
@@ -386,6 +415,36 @@ function pauseTimer() {
     .catch(error => {
         console.error('Pause Timer Error:', error);
         showNotification('Fehler beim Pausieren des Timers', 'error');
+    });
+}
+
+function resumeTimer() {
+    console.log('resumeTimer() called');
+    fetch('/timer/resume', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Resume response data:', data);
+        if (data.success) {
+            showNotification(data.message, 'success');
+            // restart polling
+            if (!timerInterval) {
+                timerInterval = setInterval(updateTimerStatus, 1000);
+            }
+            location.reload();
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Resume Timer Error:', error);
+        showNotification('Fehler beim Fortsetzen des Timers', 'error');
     });
 }
 

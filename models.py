@@ -772,6 +772,10 @@ class StudySession(db.Model):
     end_time = db.Column(db.DateTime, nullable=True)
     duration_minutes = db.Column(db.Integer, nullable=True)  # Geplante Dauer (z.B. 25 Min)
     actual_duration_seconds = db.Column(db.Integer, nullable=True)  # Tatsächliche Dauer
+    # Pause/Resume Unterstützung
+    is_paused = db.Column(db.Boolean, default=False)
+    paused_at = db.Column(db.DateTime, nullable=True)
+    accumulated_seconds = db.Column(db.Integer, default=0)  # Sekunden bisher vor Pausen
     session_type = db.Column(db.String(50), default='study')  # 'study', 'break', 'long_break'
     completed = db.Column(db.Boolean, default=False)
     notes = db.Column(db.Text, nullable=True)
@@ -784,11 +788,19 @@ class StudySession(db.Model):
     def end_session(self):
         """Session beenden und Dauer berechnen"""
         if not self.end_time:
-            self.end_time = datetime.utcnow()
-            duration = self.end_time - self.start_time
-            self.actual_duration_seconds = int(duration.total_seconds())
+            now = datetime.utcnow()
+            total_seconds = (self.accumulated_seconds or 0)
+
+            # Falls die Session gerade läuft (nicht pausiert), füge die seit start_time verstrichenen Sekunden hinzu
+            if not self.is_paused and self.start_time:
+                duration = now - self.start_time
+                total_seconds += int(duration.total_seconds())
+            # Falls sie pausiert ist, accumulated_seconds beinhaltet bereits die verstrichene Zeit
+
+            self.end_time = now
+            self.actual_duration_seconds = int(total_seconds)
             self.completed = True
-            
+
             # Punkte vergeben basierend auf Dauer
             points = self._calculate_points()
             if points > 0:
@@ -849,6 +861,9 @@ class StudySession(db.Model):
             'end_time': self.end_time.isoformat() if self.end_time else None,
             'duration_minutes': self.duration_minutes,
             'actual_duration_seconds': self.actual_duration_seconds,
+            'is_paused': getattr(self, 'is_paused', False),
+            'paused_at': self.paused_at.isoformat() if self.paused_at else None,
+            'accumulated_seconds': int(self.accumulated_seconds or 0),
             'session_type': self.session_type,
             'completed': self.completed,
             'notes': self.notes,
