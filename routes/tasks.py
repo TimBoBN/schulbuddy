@@ -108,23 +108,70 @@ def api_events():
     # Hole User aus Request (gesetzt durch Decorator)
     user = getattr(request, 'api_user', current_user)
     
-    # Nur nicht-archivierte (nicht abgeschlossene) Aufgaben anzeigen
+    # Lade Fach-Farben aus Config
+    from config import Config
+    
+    # Hole Aufgaben und Noten
     tasks = Task.query.filter_by(user_id=user.id, completed=False).all()
+    grades = Grade.query.filter_by(user_id=user.id).all()
+    
     events = []
     
+    # Füge Aufgaben hinzu
     for task in tasks:
+        # Bestimme Event-Typ basierend auf task_type
+        event_type = 'homework'  # Default
+        if hasattr(task, 'task_type'):
+            if task.task_type == 'exam':
+                event_type = 'exam'
+            elif task.task_type == 'project':
+                event_type = 'project'
+            elif task.task_type == 'test':
+                event_type = 'exam'  # Tests als Klassenarbeiten behandeln
+        
+        # Hole Fachfarbe
+        subject_color = Config.SUBJECTS.get(task.subject, '#6c757d')
+        
         events.append({
-            'id': task.id,
+            'id': f'task_{task.id}',
             'title': task.title,
             'start': task.due_date.isoformat() if task.due_date else None,
-            'backgroundColor': '#ff6b6b',  # Da alle Aufgaben nicht abgeschlossen sind
-            'borderColor': '#ff6b6b',
+            'subject': task.subject,
+            'type': event_type,
+            'color': subject_color,
+            'backgroundColor': subject_color,
+            'borderColor': subject_color,
+            'description': task.description or '',
             'extendedProps': {
                 'subject': task.subject,
                 'description': task.description,
-                'file': task.file
+                'file': task.file,
+                'task_id': task.id
             }
         })
+    
+    # Füge Noten hinzu (falls sie ein Datum haben)
+    for grade in grades:
+        if grade.date:
+            subject_color = Config.SUBJECTS.get(grade.subject, '#6c757d')
+            
+            events.append({
+                'id': f'grade_{grade.id}',
+                'title': f'{grade.subject}: {grade.grade}',
+                'start': grade.date.isoformat(),
+                'subject': grade.subject,
+                'type': 'grade',
+                'color': subject_color,
+                'backgroundColor': subject_color,
+                'borderColor': subject_color,
+                'description': grade.description or f'Note: {grade.grade}',
+                'extendedProps': {
+                    'subject': grade.subject,
+                    'grade': grade.grade,
+                    'description': grade.description,
+                    'grade_id': grade.id
+                }
+            })
     
     return jsonify(events)
 

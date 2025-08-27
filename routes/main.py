@@ -10,6 +10,39 @@ import os
 from models import Task, Grade, AppSettings, db
 from config import Config
 from utils.app_settings import get_current_school_year, get_current_semester, get_school_year_options
+from flask import abort
+from models import User
+from utils.webuntis_simple import fetch_timetable, set_default_credentials
+# helper to obtain credentials for current_user
+def _get_user_webuntis_creds(user):
+    if not user:
+        return None
+    server = getattr(user, 'webuntis_server', None)
+    school = getattr(user, 'webuntis_school', None)
+    username = getattr(user, 'webuntis_username', None)
+    password = None
+    if hasattr(user, 'get_webuntis_password'):
+        try:
+            password = user.get_webuntis_password()
+        except Exception:
+            password = None
+    # fallback: try direct decrypt of stored field
+    if not password:
+        enc = getattr(user, 'webuntis_password_enc', None)
+        if enc:
+            try:
+                from utils.crypto import decrypt_text
+                password = decrypt_text(enc)
+            except Exception:
+                password = None
+    if server and school and username and password:
+        return (server, school, username, password)
+    # debug log for missing creds
+    try:
+        print(f"webuntis creds missing for user {getattr(user,'id',None)} -> server={server!r} school={school!r} username_field={username!r} has_password_enc={bool(getattr(user,'webuntis_password_enc',None))} password_decrypted={bool(password)}")
+    except Exception:
+        pass
+    return None
 
 main_bp = Blueprint('main', __name__)
 
@@ -230,6 +263,76 @@ def debug():
     }
     
     return render_template("debug.html", debug_info=debug_info)
+
+@main_bp.route('/settings/webuntis', methods=['GET', 'POST'])
+@login_required
+def webuntis_settings():
+    """Settings page to store or clear WebUntis credentials for the current user."""
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'save':
+            server = request.form.get('server')
+            school = request.form.get('school')
+            username = request.form.get('username')
+            password = request.form.get('password')
+            if not (server and school and username):
+                flash('Server, Schule und Benutzername sind erforderlich.', 'error')
+            else:
+                # store directly to the user model to avoid method lookup issues
+                from utils.crypto import encrypt_text
+                current_user.webuntis_server = server
+                current_user.webuntis_school = school
+                current_user.webuntis_username = username
+                if password:
+                    try:
+                        current_user.webuntis_password_enc = encrypt_text(password)
+                    except Exception:
+                        current_user.webuntis_password_enc = None
+                else:
+                    # keep existing password if no password provided
+                    pass
+                db.session.add(current_user)
+                db.session.commit()
+                flash('WebUntis-Zugangsdaten gespeichert.', 'success')
+        elif action == 'clear':
+            current_user.webuntis_server = None
+            current_user.webuntis_school = None
+            current_user.webuntis_username = None
+            current_user.webuntis_password_enc = None
+            db.session.add(current_user)
+            db.session.commit()
+            flash('WebUntis-Zugangsdaten entfernt.', 'success')
+        return redirect(url_for('main.webuntis_settings'))
+    # GET
+    return render_template('webuntis_settings.html', user=current_user)
+
+@main_bp.route('/timetable')
+@login_required
+def timetable_page():
+    """Render the timetable HTML page. The JSON endpoint was removed; timetable can use server-side data or fetch from the settings UI if needed."""
+    return render_template('timetable.html')
+
+@main_bp.route('/webuntis/timetable')
+@login_required
+def webuntis_timetable():
+    """JSON endpoint for WebUntis timetable. Optional query params: start=YYYY-MM-DD end=YYYY-MM-DD"""
+    start = request.args.get('start')
+    end = request.args.get('end')
+    creds = _get_user_webuntis_creds(current_user)
+    if not creds:
+        flash('Bitte WebUntis-Zugang in den Einstellungen speichern.', 'warning')
+        return jsonify([])
+    server, school, username, password = creds
+    debug_flag = request.args.get('debug') == '1'
+    try:
+        # set module defaults for this request
+        set_default_credentials(server, school, username, password)
+        entries = fetch_timetable(start=start, end=end, debug=debug_flag)
+        return jsonify(entries)
+    except Exception as e:
+        print('webuntis endpoint error:', e)
+        flash('Fehler beim Abruf vom WebUntis. Prüfe Logs.', 'error')
+        return jsonify([])
 
 @main_bp.before_request
 def check_session_timeout():

@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Stundenplan - SchulBuddy{% endblock %}
+
+{% block content %}
+<div class="container mt-3 timetable-page">
+  <div class="card bg-transparent border-0">
+    <div class="card-header d-flex justify-content-between align-items-center bg-transparent border-0">
+      <h4 class="mb-0 text-light">Stundenplan</h4>
+      <div class="d-flex align-items-center">
+        <button id="prevDay" class="btn btn-sm btn-outline-light me-2" title="Vortag">◀</button>
+        <input id="dayPicker" type="date" class="form-control form-control-sm me-2" style="width:170px">
+        <button id="todayBtn" class="btn btn-sm btn-outline-light me-2" title="Heute">Heute</button>
+        <button id="nextDay" class="btn btn-sm btn-outline-light me-2" title="Nächstes">▶</button>
+        <button id="refreshBtn" class="btn btn-sm btn-primary">Aktualisieren</button>
+      </div>
+    </div>
+    <div class="card-body pt-3 pb-5">
+      <div id="status" class="mb-3 text-muted text-light">Lade...</div>
+
+      <!-- timetable grid: left column for time/period, right column for lessons -->
+      <div id="timetable-grid" class="timetable-grid"></div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+/* Dark mode base */
+body { background: #0b1220; color: #e6eef8; }
+.timetable-page .card { background: transparent; }
+
+.timetable-grid { display: flex; flex-direction: column; gap: 12px; }
+.timetable-row { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: stretch; }
+.timetable-row:not(:last-child)::after {
+  content: "";
+  grid-column: 1 / -1;
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+  margin-top: 12px;
+  width: 100%;
+}
+.time-col { color: #9fb3d6; padding-left: 8px; display:flex; flex-direction:column; align-items:flex-end; justify-content:center; font-size:14px; }
+.time-col .period { font-weight:700; font-size:18px; color:#cbdff6; }
+.time-col .time-start { font-size:13px; color:#94b0d6; }
+
+.lesson-card { border-radius:10px; padding:14px 18px; display:flex; flex-direction:column; justify-content:center; min-height:64px; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+.lesson-main { text-align:center; }
+.lesson-sub { margin-top:8px; font-size:13px; color:#cde0ff; }
+
+/* normal green lessons */
+.entry-normal .lesson-card { background: linear-gradient(180deg,#18a558,#10b981); color: #05210a; }
+.entry-normal .lesson-main strong { color:#04250a; }
+
+/* irregular / changed - darker yellow/orange for better contrast */
+.entry-irregular .lesson-card { background: linear-gradient(180deg,#f1c232,#f29d12); color:#2f2200; }
+.entry-irregular .lesson-main strong { color: #2f2200; }
+
+/* cancelled - darker red, no strike-through or diagonal line */
+.entry-cancelled { position:relative; }
+.entry-cancelled .lesson-card { background: linear-gradient(180deg,#8b0000,#b71c1c); color:#fff7f7; border:2px solid rgba(139,0,0,0.95); }
+/* removed diagonal ::after rule */
+.entry-cancelled .lesson-main { text-decoration: none; color: inherit; }
+
+/* badges */
+.timetable-badge { margin-right:6px; background: rgba(255,255,255,0.06); color:#dbeeff; border-radius:8px; padding:4px 8px; font-weight:600; }
+
+/* responsive */
+@media (max-width: 700px) {
+  .time-col { font-size:12px; }
+  .lesson-card { padding:12px; }
+}
+</style>
+
+<script>
+// date helpers
+function toIsoDate(d){
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+function formatDisplayDate(iso){ if(!iso) return ''; const parts = String(iso).split('-'); if(parts.length!==3) return iso; return parts[2]+'.'+parts[1]+'.'+parts[0]; }
+let currentDate = new Date();
+function setDateInput(date){ document.getElementById('dayPicker').value = toIsoDate(date); }
+function getDateFromInput(){ const v = document.getElementById('dayPicker').value; return v ? new Date(v+'T00:00:00') : new Date(); }
+
+// render helpers
+function uniqById(arr){ const seen=new Set(); const out=[]; for(const it of arr){ if(!it||!it.id){ out.push(it); continue;} if(!seen.has(it.id)){ seen.add(it.id); out.push(it);} } return out; }
+function codeClass(code){ if(code==='cancelled') return 'entry-cancelled'; if(code==='irregular') return 'entry-irregular'; return 'entry-normal'; }
+
+function formatTime(raw){ if(!raw) return '-'; const s = String(raw).padStart(4,'0'); return s.replace(/(..)$/,':$1'); }
+
+async function loadTimetableFor(dateObj){
+  const status = document.getElementById('status');
+  const grid = document.getElementById('timetable-grid');
+  status.textContent = 'Lade...'; grid.innerHTML = '';
+  try{
+    const iso = toIsoDate(dateObj);
+    const url = '{{ url_for("main.webuntis_timetable") }}?start='+encodeURIComponent(iso)+'&end='+encodeURIComponent(iso);
+    const resp = await fetch(url, { credentials: 'same-origin' });
+    if(!resp.ok) throw new Error('Netzwerkfehler');
+    let entries = await resp.json();
+    if(!entries||entries.length===0){ status.textContent = 'Keine Einträge gefunden für '+formatDisplayDate(iso)+'.'; return; }
+
+    entries = uniqById(entries);
+    entries.sort((a,b)=> ( (a.start_raw||a.start||0) - (b.start_raw||b.start||0) ) || ((a.end_raw||a.end||0)-(b.end_raw||b.end||0)) );
+
+    status.textContent = entries.length + ' Einträge gefunden für ' + formatDisplayDate(iso) + '.';
+
+    // group by start_time_slot to show as rows
+    const groups = {};
+    for(const e of entries){ const key = e.start_time_slot || formatTime(e.start_raw); if(!groups[key]) groups[key]=[]; groups[key].push(e); }
+    const sortedKeys = Object.keys(groups).sort();
+
+    let periodIndex = 0;
+    for(const key of sortedKeys){
+      const row = document.createElement('div'); row.className='timetable-row';
+      const timeCol = document.createElement('div'); timeCol.className='time-col';
+      periodIndex += 1;
+      const firstEntry = groups[key][0];
+      const startDisplay = firstEntry.start || formatTime(firstEntry.start_raw);
+      const endDisplay = firstEntry.end || formatTime(firstEntry.end_raw);
+      timeCol.innerHTML = `<div class="time-start">${startDisplay}</div><div class="period">${periodIndex}</div><div class="time-end">${endDisplay}</div>`;
+
+      const lessonsCol = document.createElement('div'); lessonsCol.className='lessons-col';
+      // if multiple lessons start same time, stack them vertically
+      for(const e of groups[key]){
+        const block = document.createElement('div'); block.className = codeClass(e.code) + ' mb-2';
+        const card = document.createElement('div'); card.className='lesson-card';
+
+        const subject = (e.subjects_names&&e.subjects_names.length)? e.subjects_names.join(', '): (e.subjects||[]).join(', ')||'-';
+        const teachers = (e.teachers_names&&e.teachers_names.length)? e.teachers_names.join(', '): (e.teachers&&e.teachers.length)? e.teachers.join(', '): '';
+        const rooms = (e.rooms_names&&e.rooms_names.length)? e.rooms_names.join(', '): (e.rooms||[]).join(', ');
+
+        // classes badges
+        let classesHtml = '';
+        if(e.classes_names && e.classes_names.length){ for(const c of e.classes_names){ classesHtml += `<span class="timetable-badge">${c}</span>`; } }
+        else if(e.classes && e.classes.length){ for(const c of e.classes){ classesHtml += `<span class="timetable-badge">${c}</span>`; } }
+
+        const main = document.createElement('div'); main.className='lesson-main';
+        main.innerHTML = `<div style="font-weight:800; font-size:16px;">${subject}</div>`;
+        const sub = document.createElement('div'); sub.className='lesson-sub';
+        sub.innerHTML = `${teachers ? teachers + '<br>' : ''}${rooms ? rooms : ''}<div style="margin-top:6px">${classesHtml}</div>`;
+
+        card.appendChild(main); card.appendChild(sub);
+        block.appendChild(card);
+        lessonsCol.appendChild(block);
+      }
+
+      row.appendChild(timeCol);
+      row.appendChild(lessonsCol);
+      grid.appendChild(row);
+    }
+
+  }catch(err){ console.error(err); status.textContent = 'Fehler beim Laden des Stundenplans.'; }
+}
+
+function loadTimetable(){ const dateObj = getDateFromInput(); currentDate = dateObj; loadTimetableFor(dateObj); }
+function setControls(){ setDateInput(currentDate);
+  document.getElementById('prevDay').addEventListener('click', ()=>{ currentDate.setDate(currentDate.getDate()-1); setDateInput(currentDate); loadTimetable(); });
+  document.getElementById('nextDay').addEventListener('click', ()=>{ currentDate.setDate(currentDate.getDate()+1); setDateInput(currentDate); loadTimetable(); });
+  document.getElementById('todayBtn').addEventListener('click', ()=>{ currentDate=new Date(); setDateInput(currentDate); loadTimetable(); });
+  document.getElementById('dayPicker').addEventListener('change', ()=>{ currentDate = getDateFromInput(); loadTimetable(); });
+  document.getElementById('refreshBtn').addEventListener('click', loadTimetable);
+}
+
+// initialize
+currentDate = new Date(); setControls(); setDateInput(currentDate); window.addEventListener('load', loadTimetable);
+</script>
+
+{% endblock %}

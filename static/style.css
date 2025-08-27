@@ -900,3 +900,28 @@ body {
     transform: translateY(-4px);
     box-shadow: var(--shadow-xl);
 }
+
+/* === CALENDAR FILTER GRID === */
+.calendar-filter-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+    .calendar-filter-grid {
+        grid-template-columns: 1fr 1fr auto;
+    }
+}
+
+.filter-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+@media (min-width: 768px) {
+    .filter-actions {
+        min-width: 200px;
+    }
+}
