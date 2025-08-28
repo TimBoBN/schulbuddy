@@ -192,8 +192,19 @@ class SchulBuddyCalendar {
     
     // Füge Events zu einem Tag hinzu
     addEventsToDay(dayElement, date) {
-        const dateString = date.toISOString().split('T')[0];
+    // Build local YYYY-MM-DD string to avoid timezone shifts from toISOString()
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
         const dayEvents = this.filteredEvents.filter(event => event.start === dateString);
+        // Debug: log mapping to help diagnose off-by-one/date-shift issues
+        if (dayEvents.length > 0) {
+            console.log(`📌 Events for ${dateString}:`, dayEvents.map(ev => ({title: ev.title, start: ev.start})));
+        } else {
+            // For troubleshooting, optionally log when server events exist near this date
+            // console.debug(`No events for ${dateString}`);
+        }
         
         dayEvents.forEach(event => {
             const eventElement = document.createElement('div');
