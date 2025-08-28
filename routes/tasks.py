@@ -561,6 +561,55 @@ def delete_archived_task(task_id):
     return redirect(url_for('tasks.archive'))
 
 
+@tasks_bp.route("/unarchive_task/<int:task_id>", methods=['POST'])
+@login_required
+def unarchive_task(task_id):
+    """Stelle eine archivierte Aufgabe wieder her (markiere sie als offen)."""
+    task = Task.query.get_or_404(task_id)
+
+    # Sicherheitscheck: Nur eigene und erledigte Aufgaben wiederherstellen
+    if task.user_id != current_user.id:
+        flash("Du kannst nur deine eigenen Aufgaben wiederherstellen.", "error")
+        return redirect(url_for('tasks.archive'))
+
+    if not task.completed:
+        flash("Nur archivierte (erledigte) Aufgaben können wiederhergestellt werden.", "error")
+        return redirect(url_for('tasks.archive'))
+
+    try:
+        # Sammle betroffene Tage für Statistik-Update
+        affected_dates = set()
+        if task.completed_date:
+            affected_dates.add(task.completed_date.date())
+        if task.created_at:
+            affected_dates.add(task.created_at.date())
+
+        # Setze Aufgabe wieder auf offen
+        task.completed = False
+        task.completed_date = None
+        db.session.commit()
+
+        # Statistik neu berechnen für betroffene Tage
+        for date_obj in affected_dates:
+            UserStatistic.update_daily_stats(current_user.id, date_obj)
+
+        # Aktivitätslog
+        log_entry = ActivityLog(
+            user_id=current_user.id,
+            activity_type="unarchive_task",
+            activity_data=f"Aufgabe '{task.title}' wiederhergestellt | Fach: {task.subject}, Typ: {task.task_type}"
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+
+        flash(f"Aufgabe '{task.title}' wurde wiederhergestellt.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Fehler beim Wiederherstellen der Aufgabe: {str(e)}", "error")
+
+    return redirect(url_for('tasks.archive'))
+
+
 def auto_cleanup_old_tasks():
     """Automatische Bereinigung alter Aufgaben (für Cron-Job oder regelmäßige Ausführung)"""
     try:

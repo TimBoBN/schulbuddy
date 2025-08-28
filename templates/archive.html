@@ -80,9 +80,16 @@
                                                         </h6>
                                                         <div>
                                                             <span class="badge bg-success me-2">Erledigt</span>
-                                                            <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete({{ task.id }}, '{{ task.title }}')" title="Permanent löschen">
-                                                                <i class="fas fa-trash"></i>
-                                                            </button>
+                                                            <form method="POST" action="/unarchive_task/{{ task.id }}" style="display:inline">
+                                                                <button type="submit" class="btn btn-sm btn-outline-secondary me-2" onclick="return confirm('Möchtest du die Aufgabe ' + {{ task.title|tojson }} + ' wiederherstellen?')" title="Wiederherstellen">
+                                                                    <i class="fas fa-undo"></i>
+                                                                </button>
+                                                            </form>
+                                                            <form method="POST" action="/delete_archived_task/{{ task.id }}" style="display:inline" onsubmit="return confirm('Möchtest du die Aufgabe ' + {{ task.title|tojson }} + ' wirklich permanent löschen? Diese Aktion kann nicht rückgängig gemacht werden.')">
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Permanent löschen">
+                                                                    <i class="fas fa-trash"></i>
+                                                                </button>
+                                                            </form>
                                                         </div>
                                                     </div>
                                                     
@@ -201,5 +208,17 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 console.log('Archiv-Seite geladen - Automatische Bereinigung aktiv');
+</script>
+<script>
+// Bestätigungsdialog für Wiederherstellen
+function confirmUnarchive(taskId, taskTitle) {
+    if (confirm(`Möchtest du die Aufgabe "${taskTitle}" wiederherstellen?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/unarchive_task/${taskId}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
 </script>
 {% endblock %}
