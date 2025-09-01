@@ -290,9 +290,9 @@ def index():
                              total_average=0,
                              durchschnitt={},
                              today=today,
-                             current_school_year=school_year,
-                             current_semester=semester,
-                             school_year_options=year_options)
+                             current_school_year=get_current_school_year(),
+                             current_semester=get_current_semester(),
+                             school_year_options=get_school_year_options())
 
 @main_bp.route("/repair")
 @login_required
