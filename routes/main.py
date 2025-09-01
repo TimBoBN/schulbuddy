@@ -172,6 +172,12 @@ def index():
                     # Template erwartet 'average' statt 'avg_grade'
                     subject_summary[subject]['average'] = subject_summary[subject]['avg_grade']
             
+            # Stelle sicher, dass ALLE Fächer den 'average' Schlüssel haben
+            for subject in subject_summary.keys():
+                if 'average' not in subject_summary[subject]:
+                    subject_summary[subject]['average'] = 0
+                    subject_summary[subject]['avg_grade'] = 0
+            
             print(f"DEBUG: Processed {len(all_grades)} total grades for subject summary")
         except Exception as e:
             print(f"ERROR building subject summary from grades: {e}")
