@@ -60,88 +60,152 @@ def index():
         # Nur die 5 nächsten Aufgaben anzeigen (sortiert nach Fälligkeit und Priorität)
         today = date.today()
         
-        # Alle offenen Aufgaben
-        open_tasks = Task.query.filter_by(user_id=current_user.id, completed=False).all()
+        # Database queries with error handling
+        try:
+            # Alle offenen Aufgaben
+            open_tasks = Task.query.filter_by(user_id=current_user.id, completed=False).all()
+            print(f"DEBUG: Found {len(open_tasks)} open tasks")
+        except Exception as e:
+            print(f"ERROR loading open tasks: {e}")
+            open_tasks = []
         
         # Sortiere nach Priorität und Fälligkeit
         def sort_by_priority_date(task):
-            # Da priority noch nicht in der DB existiert, verwende task_type als Priorität
-            priority_order = {'exam': 4, 'test': 3, 'project': 2, 'homework': 1, 'other': 0}
-            priority_score = priority_order.get(task.task_type, 0)
+            try:
+                # Da priority noch nicht in der DB existiert, verwende task_type als Priorität
+                priority_order = {'exam': 4, 'test': 3, 'project': 2, 'homework': 1, 'other': 0}
+                priority_score = priority_order.get(task.task_type, 0)
+                
+                # Überfällige Aufgaben haben höchste Priorität
+                if task.due_date and task.due_date < today:
+                    priority_score += 10
+                # Heute fällige Aufgaben haben hohe Priorität
+                elif task.due_date and task.due_date == today:
+                    priority_score += 5
+                
+                due_date = task.due_date or date(2099, 12, 31)
+                return (-priority_score, due_date)
+            except Exception as e:
+                print(f"ERROR in sort_by_priority_date for task {getattr(task, 'id', 'unknown')}: {e}")
+                return (0, date(2099, 12, 31))
+        
+        try:
+            open_tasks.sort(key=sort_by_priority_date)
+            tasks = open_tasks[:5]  # Nur die 5 wichtigsten
+            print(f"DEBUG: Sorted to top 5 tasks")
+        except Exception as e:
+            print(f"ERROR sorting tasks: {e}")
+            tasks = open_tasks[:5] if open_tasks else []
+        
+        # Grades queries with error handling
+        try:
+            # Nur die 5 letzten Noten anzeigen
+            grades = Grade.query.filter_by(user_id=current_user.id).order_by(Grade.timestamp.desc()).limit(5).all()
+            print(f"DEBUG: Found {len(grades)} recent grades")
+        except Exception as e:
+            print(f"ERROR loading grades: {e}")
+            grades = []
+        
+        # Task statistics with error handling
+        try:
+            # Anzahl erledigter Aufgaben für Archiv-Button
+            completed_tasks_count = Task.query.filter_by(user_id=current_user.id, completed=True).count()
+            print(f"DEBUG: Found {completed_tasks_count} completed tasks")
+        except Exception as e:
+            print(f"ERROR loading completed tasks count: {e}")
+            completed_tasks_count = 0
+        
+        try:
+            # Kommende Deadlines (nächste 7 Tage)
+            upcoming_deadline = today + timedelta(days=7)
+            upcoming_tasks = Task.query.filter(
+                Task.user_id == current_user.id,
+                Task.completed == False,
+                Task.due_date.between(today, upcoming_deadline)
+            ).order_by(Task.due_date.asc()).all()
+            print(f"DEBUG: Found {len(upcoming_tasks)} upcoming tasks")
+        except Exception as e:
+            print(f"ERROR loading upcoming tasks: {e}")
+            upcoming_tasks = []
+        
+        try:
+            # Überfällige Aufgaben
+            overdue_tasks = Task.query.filter(
+                Task.user_id == current_user.id,
+                Task.completed == False,
+                Task.due_date < today
+            ).order_by(Task.due_date.desc()).all()
+            print(f"DEBUG: Found {len(overdue_tasks)} overdue tasks")
+        except Exception as e:
+            print(f"ERROR loading overdue tasks: {e}")
+            overdue_tasks = []
+        
+        # Subject summary calculation with error handling
+        try:
+            # Fach-Zusammenfassung
+            subject_summary = defaultdict(lambda: {'tasks': 0, 'completed': 0, 'avg_grade': 0})
             
-            # Überfällige Aufgaben haben höchste Priorität
-            if task.due_date and task.due_date < today:
-                priority_score += 10
-            # Heute fällige Aufgaben haben hohe Priorität
-            elif task.due_date and task.due_date == today:
-                priority_score += 5
+            # Aufgaben nach Fach
+            all_tasks = Task.query.filter_by(user_id=current_user.id).all()
+            for task in all_tasks:
+                if hasattr(task, 'subject') and task.subject:
+                    subject_summary[task.subject]['tasks'] += 1
+                    if task.completed:
+                        subject_summary[task.subject]['completed'] += 1
             
-            due_date = task.due_date or date(2099, 12, 31)
-            return (-priority_score, due_date)
+            print(f"DEBUG: Processed {len(all_tasks)} total tasks for subject summary")
+        except Exception as e:
+            print(f"ERROR building subject summary from tasks: {e}")
+            subject_summary = defaultdict(lambda: {'tasks': 0, 'completed': 0, 'avg_grade': 0})
         
-        open_tasks.sort(key=sort_by_priority_date)
-        tasks = open_tasks[:5]  # Nur die 5 wichtigsten
+        try:
+            # Noten nach Fach
+            all_grades = Grade.query.filter_by(user_id=current_user.id).all()
+            grades_by_subject = defaultdict(list)
+            for grade in all_grades:
+                if hasattr(grade, 'subject') and grade.subject:
+                    grades_by_subject[grade.subject].append(grade.grade)
+            
+            for subject, grade_list in grades_by_subject.items():
+                if grade_list:
+                    subject_summary[subject]['avg_grade'] = round(sum(grade_list) / len(grade_list), 2)
+                    # Template erwartet 'average' statt 'avg_grade'
+                    subject_summary[subject]['average'] = subject_summary[subject]['avg_grade']
+            
+            print(f"DEBUG: Processed {len(all_grades)} total grades for subject summary")
+        except Exception as e:
+            print(f"ERROR building subject summary from grades: {e}")
         
-        # Nur die 5 letzten Noten anzeigen
-        grades = Grade.query.filter_by(user_id=current_user.id).order_by(Grade.timestamp.desc()).limit(5).all()
-        
-        # Anzahl erledigter Aufgaben für Archiv-Button
-        completed_tasks_count = Task.query.filter_by(user_id=current_user.id, completed=True).count()
-        
-        # Kommende Deadlines (nächste 7 Tage)
-        upcoming_deadline = today + timedelta(days=7)
-        upcoming_tasks = Task.query.filter(
-            Task.user_id == current_user.id,
-            Task.completed == False,
-            Task.due_date.between(today, upcoming_deadline)
-        ).order_by(Task.due_date.asc()).all()
-        
-        # Überfällige Aufgaben
-        overdue_tasks = Task.query.filter(
-            Task.user_id == current_user.id,
-            Task.completed == False,
-            Task.due_date < today
-        ).order_by(Task.due_date.desc()).all()
-        
-        # Fach-Zusammenfassung
-        subject_summary = defaultdict(lambda: {'tasks': 0, 'completed': 0, 'avg_grade': 0})
-        
-        # Aufgaben nach Fach
-        all_tasks = Task.query.filter_by(user_id=current_user.id).all()
-        for task in all_tasks:
-            subject_summary[task.subject]['tasks'] += 1
-            if task.completed:
-                subject_summary[task.subject]['completed'] += 1
-        
-        # Noten nach Fach
-        all_grades = Grade.query.filter_by(user_id=current_user.id).all()
-        grades_by_subject = defaultdict(list)
-        for grade in all_grades:
-            grades_by_subject[grade.subject].append(grade.grade)
-        
-        for subject, grade_list in grades_by_subject.items():
-            if grade_list:
-                subject_summary[subject]['avg_grade'] = round(sum(grade_list) / len(grade_list), 2)
-                # Template erwartet 'average' statt 'avg_grade'
-                subject_summary[subject]['average'] = subject_summary[subject]['avg_grade']
-        
-        # Berechne Gesamtdurchschnitt
-        if all_grades:
-            overall_average = sum(g.grade for g in all_grades) / len(all_grades)
-            overall_average = round(overall_average, 2)
-        else:
+        try:
+            # Berechne Gesamtdurchschnitt
+            if all_grades:
+                valid_grades = [g for g in all_grades if hasattr(g, 'grade') and g.grade is not None]
+                if valid_grades:
+                    overall_average = sum(g.grade for g in valid_grades) / len(valid_grades)
+                    overall_average = round(overall_average, 2)
+                else:
+                    overall_average = 0
+            else:
+                overall_average = 0
+            
+            # Zeugnis-Durchschnitt (nur Zeugnisnoten)
+            certificate_grades = [g for g in all_grades if hasattr(g, 'grade_type') and g.grade_type == 'certificate' and hasattr(g, 'grade') and g.grade is not None]
+            if certificate_grades:
+                certificate_average = sum(g.grade for g in certificate_grades) / len(certificate_grades)
+                certificate_average = round(certificate_average, 2)
+            else:
+                certificate_average = 0
+        except Exception as e:
+            print(f"ERROR calculating averages: {e}")
             overall_average = 0
-        
-        # Zeugnis-Durchschnitt (nur Zeugnisnoten)
-        certificate_grades = [g for g in all_grades if g.grade_type == 'certificate']
-        if certificate_grades:
-            certificate_average = sum(g.grade for g in certificate_grades) / len(certificate_grades)
-            certificate_average = round(certificate_average, 2)
-        else:
             certificate_average = 0
         
         # Session-Timeout-Warnung
-        logout_warning = session.pop('logout_warning', None)
+        try:
+            logout_warning = session.pop('logout_warning', None)
+        except Exception as e:
+            print(f"ERROR getting logout warning: {e}")
+            logout_warning = None
         
         return render_template("index.html",
                              aufgaben=tasks,
@@ -166,8 +230,48 @@ def index():
                              current_semester=get_current_semester(),
                              school_year_options=get_school_year_options())
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         print(f"Error in index route: {e}")
-        flash("Fehler beim Laden der Daten", "error")
+        print(f"Full traceback: {error_details}")
+        
+        # Try to identify specific error areas
+        error_context = "unknown"
+        try:
+            # Test database connection
+            Task.query.count()
+            error_context = "after_db_test"
+        except Exception as db_e:
+            print(f"Database error: {db_e}")
+            error_context = "database_connection"
+        
+        try:
+            # Test app settings functions
+            get_current_school_year()
+            get_current_semester() 
+            get_school_year_options()
+            error_context = "after_settings_test"
+        except Exception as settings_e:
+            print(f"App settings error: {settings_e}")
+            error_context = "app_settings"
+        
+        flash(f"Fehler beim Laden der Daten (Kontext: {error_context}). Details in den Logs.", "error")
+        
+        # Safe fallback values
+        try:
+            today = date.today()
+        except:
+            today = None
+            
+        try:
+            school_year = get_current_school_year()
+            semester = get_current_semester()
+            year_options = get_school_year_options()
+        except:
+            school_year = '2025/26'
+            semester = 1
+            year_options = ['2025/26']
+        
         return render_template("index.html", 
                              tasks=[], 
                              grades=[], 
