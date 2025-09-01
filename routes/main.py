@@ -207,28 +207,53 @@ def index():
             print(f"ERROR getting logout warning: {e}")
             logout_warning = None
         
-        return render_template("index.html",
-                             aufgaben=tasks,
-                             tasks=tasks,
-                             grades=grades,
-                             noten=grades,
-                             completed_tasks_count=completed_tasks_count,
-                             upcoming_tasks=upcoming_tasks,
-                             overdue_tasks=overdue_tasks,
-                             subject_summary=dict(subject_summary),
-                             subjects=Config.SUBJECTS,
-                             logout_warning=logout_warning,
-                             user=current_user,
-                             open_tasks_count=len(open_tasks),  # Alle offenen Aufgaben
-                             priority_tasks_count=len(tasks),  # Top 5 Aufgaben
-                             overall_average=overall_average,
-                             certificate_average=certificate_average,
-                             total_average=certificate_average,  # Template erwartet total_average für Gesamtdurchschnitt
-                             durchschnitt=dict(subject_summary),
-                             today=today,
-                             current_school_year=get_current_school_year(),
-                             current_semester=get_current_semester(),
-                             school_year_options=get_school_year_options())
+        try:
+            # Safe calls to utils functions
+            try:
+                current_school_year = get_current_school_year()
+            except Exception as e:
+                print(f"ERROR get_current_school_year: {e}")
+                current_school_year = '2025/26'
+            
+            try:
+                current_semester = get_current_semester()
+            except Exception as e:
+                print(f"ERROR get_current_semester: {e}")
+                current_semester = 1
+            
+            try:
+                school_year_options = get_school_year_options()
+            except Exception as e:
+                print(f"ERROR get_school_year_options: {e}")
+                school_year_options = ['2024/25', '2025/26', '2026/27']
+            
+            return render_template("index.html",
+                                 aufgaben=tasks,
+                                 tasks=tasks,
+                                 grades=grades,
+                                 noten=grades,
+                                 completed_tasks_count=completed_tasks_count,
+                                 upcoming_tasks=upcoming_tasks,
+                                 overdue_tasks=overdue_tasks,
+                                 subject_summary=dict(subject_summary),
+                                 subjects=Config.SUBJECTS,
+                                 logout_warning=logout_warning,
+                                 user=current_user,
+                                 open_tasks_count=len(open_tasks) if open_tasks else 0,  # Alle offenen Aufgaben
+                                 priority_tasks_count=len(tasks) if tasks else 0,  # Top 5 Aufgaben
+                                 overall_average=overall_average,
+                                 certificate_average=certificate_average,
+                                 total_average=certificate_average,  # Template erwartet total_average für Gesamtdurchschnitt
+                                 durchschnitt=dict(subject_summary),
+                                 today=today,
+                                 current_school_year=current_school_year,
+                                 current_semester=current_semester,
+                                 school_year_options=school_year_options)
+        except Exception as render_error:
+            print(f"ERROR in render_template: {render_error}")
+            import traceback
+            print(f"Render traceback: {traceback.format_exc()}")
+            raise render_error
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
@@ -254,6 +279,31 @@ def index():
         except Exception as settings_e:
             print(f"App settings error: {settings_e}")
             error_context = "app_settings"
+        
+        try:
+            # Test Config access
+            Config.SUBJECTS
+            error_context = "after_config_test"
+        except Exception as config_e:
+            print(f"Config error: {config_e}")
+            error_context = "config_access"
+        
+        try:
+            # Test current_user access
+            current_user.id
+            current_user.username
+            error_context = "after_user_test"
+        except Exception as user_e:
+            print(f"Current user error: {user_e}")
+            error_context = "current_user"
+        
+        try:
+            # Test date functions
+            today_test = date.today()
+            error_context = "after_date_test"
+        except Exception as date_e:
+            print(f"Date error: {date_e}")
+            error_context = "date_functions"
         
         flash(f"Fehler beim Laden der Daten (Kontext: {error_context}). Details in den Logs.", "error")
         
