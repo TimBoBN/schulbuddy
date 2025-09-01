@@ -71,7 +71,7 @@
                                             {{ subject }}
                                         </span>
                                         <div class="grade-average-info">
-                                            <span class="grade-average-value">{{ "%.2f"|format(avg.average or 0) }}</span>
+                                            <span class="grade-average-value">{{ "%.2f"|format(avg['average'] or 0) }}</span>
                                             <small class="text-muted">({{ avg.count }} {% if avg.count == 1 %}Note{% else %}Noten{% endif %})</small>
                                         </div>
                                     </div>
