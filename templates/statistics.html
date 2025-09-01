@@ -183,7 +183,7 @@
                                         </small>
                                     </div>
                                     <div class="d-flex align-items-center">
-                                        <span class="badge bg-{{ 'success' if data.average <= 2 else 'warning' if data.average <= 4 else 'danger' }} me-2">⌀ {{ data.average }}</span>
+                                        <span class="badge bg-{{ 'success' if data['average'] <= 2 else 'warning' if data['average'] <= 4 else 'danger' }} me-2">⌀ {{ data['average'] }}</span>
                                         {% if data.trend == 'improving' %}
                                             <i class="fas fa-arrow-up text-success" title="Verbesserung"></i>
                                         {% elif data.trend == 'declining' %}
@@ -212,7 +212,7 @@
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span>{{ year }}</span>
                                 <div>
-                                    <span class="badge bg-{{ 'success' if data.average <= 2 else 'warning' if data.average <= 4 else 'danger' }}">{{ data.average }}</span>
+                                    <span class="badge bg-{{ 'success' if data['average'] <= 2 else 'warning' if data['average'] <= 4 else 'danger' }}">{{ data['average'] }}</span>
                                     <small class="text-muted ms-1">({{ data.count }} Noten)</small>
                                 </div>
                             </div>

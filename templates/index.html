@@ -320,7 +320,7 @@
                                                 {{ subject }}
                                             </span>
                                         </span>
-                                        <strong class="text-{{ 'success' if avg_data.average <= 2 else 'warning' if avg_data.average <= 4 else 'danger' }}">{{ avg_data.average }}</strong>
+                                        <strong class="text-{{ 'success' if avg_data['average'] <= 2 else 'warning' if avg_data['average'] <= 4 else 'danger' }}">{{ avg_data['average'] }}</strong>
                                     </div>
                                 {% endfor %}
                                 <div class="mt-3">
