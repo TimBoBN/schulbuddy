@@ -1,102 +1,79 @@
-# 🎓 SchulBuddy - Multi-Architecture Docker Edition
+# 🎓 SchulBuddy - Multi-Architecture Docker Edition (English)
 
-Ein modernes Schulmanagementsystem
-```
-schulbuddy/
-├── 📁 config/                   # Konfigurationsdateien
-│   ├── .env.example            # Environment-Variablen Vorlage
-│   ├── .env.template           # Alternative Vorlage
-│   └── nginx.conf              # Nginx Konfiguration
-├── 📁 docs/                     # Dokumentation
-│   ├── ARM_SUPPORT.md          # ARM-Support Details
-│   ├── DOCKER_README.md        # Docker Setup Guide
-│   ├── INDEX.md                # Dokumentations-Index
-│   ├── MULTI-ARCH-README.md    # Multi-Architecture Guide
-│   └── SECURITY.md             # Sicherheitsrichtlinien
-├── 📁 scripts/                  # Utility Scripts
-│   ├── build-multiarch.ps1     # Multi-Arch Build (PowerShell)
-│   ├── build-multiarch.sh      # Multi-Arch Build (Bash)
-│   ├── setup-env.ps1           # Environment Setup (PowerShell)
-│   ├── setup-env.sh            # Environment Setup (Bash)
-│   ├── trigger-multiplatform.ps1 # Workflow Trigger (PowerShell)
-│   └── trigger-multiplatform.sh  # Workflow Trigger (Bash)
-├── 📄 app.py                    # Haupt-Flask-Anwendung
-├── 📄 config.py                 # Konfigurationsverwaltung
-├── 📄 models.py                 # Datenbankmodellee Docker-Support für einfache Bereitstellung auf AMD64 und ARM-Systemen.
+A modern school management system with Docker support for easy deployment on AMD64 and ARM systems.
 
-```
 [![Docker Multi-Platform Build](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-multiplatform.yml/badge.svg)](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-multiplatform.yml)
+# 🎓 SchulBuddy - Multi-Architecture Docker Edition (English)
+
+A modern school management system with Docker support for easy deployment on AMD64 and ARM systems.
 
 ## 🚀 Quick Start
 
-### Option 1: Schnellstart mit curl (empfohlen)
+### Option 1: Quick start with curl (recommended)
 
 ```bash
-# 1. Konfigurationsdatei herunterladen
-curl -o docker-compose.yml https://raw.githubusercontent.com/TimBoBN/schulbuddy/main/docker-compose.multiplatform.yml
-
-# 2. .env herunterladen
+# 1. Download configuration file
 curl -o .env https://raw.githubusercontent.com/TimBoBN/schulbuddy/main/config/.env.example
 
-# 3. Wichtige Einstellungen anpassen
-nano .env  # Ändere mindestens SECRET_KEY!
+# 2. Adjust important settings
+nano .env  # Change at least SECRET_KEY!
 
-# 4. Container starten (automatische Architektur-Erkennung!)
+# 3. Start the container (auto-detects architecture)
 docker-compose up -d
 
-# 5. Öffne http://localhost:5000
+# 4. Open http://localhost:5000
 ```
 
-### Option 2: Manueller Start
+### Option 2: Manual start
 
 ```bash
-# 1. Repository klonen (optional)
+# 1. Clone the repository (optional)
 git clone https://github.com/TimBoBN/schulbuddy.git
 cd schulbuddy
 
-# 2. Konfiguration kopieren
+# 2. Copy config
 cp config/.env.example .env
 
-# 3. Anpassen und starten
+# 3. Adjust and start
 nano .env
 docker-compose up -d
 ```
 
-### 🎯 Verschiedene Versionen
+### 🎯 Versions
 
 ```bash
-# Produktionsversion (main branch)
+# Production (main branch)
 docker pull timbobn/schulbuddy:latest
 
-# Entwicklungsversion (dev branch) 
+# Development (dev branch)
 docker pull timbobn/schulbuddy:dev
 
-# Spezifische Version
+# Specific version
 docker pull timbobn/schulbuddy:v1.2.0
 ```
 
 ## 🏗️ Multi-Architecture Support
 
-SchulBuddy unterstützt automatisch:
-- **AMD64**: Normale PCs, Server (4 Gunicorn Worker)
-- **ARM**: Raspberry Pi, Apple M1/M2 (2 Gunicorn Worker)
+SchulBuddy automatically supports:
+- **AMD64**: PCs/servers (4 Gunicorn workers)
+- **ARM**: Raspberry Pi, Apple M1/M2 (2 Gunicorn workers)
 
-Docker wählt automatisch die richtige Architektur für dein System!
+Docker automatically selects the right architecture for your system.
 
-## ⚙️ Konfiguration (.env Datei)
+## ⚙️ Configuration (.env)
 
-### Automatisch herunterladen:
+### Download automatically:
 ```bash
 curl -o .env https://raw.githubusercontent.com/TimBoBN/schulbuddy/main/config/.env.example
 ```
 
-### Wichtigste Einstellungen:
+### Most important settings:
 
 ```bash
-# 🔐 WICHTIG: Ändere den Secret Key!
-SECRET_KEY=dein-sehr-sicherer-geheimer-schluessel-hier
+# 🔐 IMPORTANT: Change the secret key!
+SECRET_KEY=your-very-strong-secret-key-here
 
-# 🏫 Schuleinstellungen
+# 🏫 School settings
 CURRENT_SCHOOL_YEAR=2024/25
 CURRENT_SEMESTER=1
 
@@ -104,136 +81,110 @@ CURRENT_SEMESTER=1
 PORT=5000
 EXTERNAL_PORT=5000
 
-# 🐳 Docker Image Version  
-TAG=latest  # oder 'dev' für Entwicklungsversion
+# 🐳 Docker image version  
+TAG=latest  # or 'dev' for development
 ```
 
-### Vollständige .env Optionen:
-- **Sicherheit**: `SECRET_KEY`, Session-Timeouts, Login-Limits
-- **Schule**: Schuljahr, Semester
-- **Performance**: Worker-Anzahl (automatisch), Timeouts
-- **Docker**: Image-Tags, Registries
+### Full .env options:
+- **Security**: `SECRET_KEY`, session timeouts, login limits
+- **School**: school year, semester
+- **Performance**: worker count (automatic), timeouts
+- **Docker**: image tags, registries
 
-## 📁 Projektstruktur
+## 📁 Project structure
 
 ```
 schulbuddy/
-├── � config/                   # Konfigurationsdateien
-│   ├── .env.example            # Environment-Variablen Vorlage
-│   ├── .env.template           # Alternative Vorlage
-│   └── nginx.conf              # Nginx Konfiguration
-├── 📁 docs/                     # Dokumentation
-│   ├── ARM_SUPPORT.md          # ARM-Support Details
-│   ├── DOCKER_README.md        # Docker Setup Guide
-│   ├── MULTI-ARCH-README.md    # Multi-Architecture Guide
-│   └── SECURITY.md             # Sicherheitsrichtlinien
-├── 📁 scripts/                  # Utility Scripts
-│   ├── build-multiarch.ps1     # Multi-Arch Build (PowerShell)
-│   ├── build-multiarch.sh      # Multi-Arch Build (Bash)
-│   ├── setup-env.ps1           # Environment Setup (PowerShell)
-│   └── setup-env.sh            # Environment Setup (Bash)
-├── �📄 app.py                    # Haupt-Flask-Anwendung
-├── 📄 config.py                 # Konfigurationsverwaltung
-├── 📄 models.py                 # Datenbankmodelle
-├── 📄 wsgi.py                   # WSGI-Einstiegspunkt
-├── 📄 api_security.py           # API-Sicherheit
-├── 📄 requirements.txt          # Python-Abhängigkeiten
-├── 🐳 Dockerfile                # AMD64 Container
-├── 🐳 Dockerfile.arm            # ARM Container
-├── 🐳 docker-compose.yml        # Service-Orchestrierung
-├── 📄 entrypoint.sh             # Container Startup
-└── 📄 gunicorn.conf.py          # Gunicorn-Konfiguration
-├── 📄 entrypoint.sh             # Container-Einstiegsskript
-├── 📄 Makefile                  # Build-Automatisierung
-├── 📁 .github/workflows/        # CI/CD Workflows
-│   ├── docker-ghcr-publish.yml  # GitHub Container Registry Workflow
-│   └── docker-hub-publish.yml   # Docker Hub Workflow
-├── 📁 config/                   # Konfigurationsdateien
-│   ├── .env.example             # Umgebungsvariablen-Vorlage
-│   ├── .env.template            # Alternative Vorlage
-│   └── nginx.conf               # Nginx-Konfiguration
-├── 📁 scripts/                  # Setup- und Hilfsskripte
-│   ├── setup-env.ps1            # Windows Setup-Skript
-│   └── setup-env.sh             # Linux/Mac Setup-Skript
-├── 📁 routes/                   # Flask-Routen
-│   ├── admin.py                 # Admin-Routen
-│   ├── auth.py                  # Authentifizierungs-Routen
-│   ├── grades.py                # Noten-Verwaltung
-│   └── ... und weitere
-├── 📁 static/                   # Statische Dateien (CSS, JS)
-├── 📁 templates/                # HTML-Templates
-├── 📁 instance/                 # Lokale Datenbankdateien
-└── 📁 utils/                    # Hilfsfunktionen und Utilities
+├── 📁 config/                   # Configuration files
+│   ├── .env.example            # Environment variables template
+│   ├── .env.template           # Alternative template
+│   └── nginx.conf              # Nginx configuration
+├── 📁 docs/                     # Documentation
+│   ├── ARM_SUPPORT.md          # ARM support details
+│   ├── DOCKER_README.md        # Docker setup guide
+│   ├── MULTI-ARCH-README.md    # Multi-architecture guide
+│   └── SECURITY.md             # Security guidelines
+├── 📁 scripts/                  # Utility scripts
+│   ├── build-multiarch.ps1     # Multi-arch build (PowerShell)
+│   ├── build-multiarch.sh      # Multi-arch build (Bash)
+│   ├── setup-env.ps1           # Environment setup (PowerShell)
+│   └── setup-env.sh            # Environment setup (Bash)
+├── 📄 app.py                    # Main Flask application
+├── 📄 config.py                 # Configuration management
+├── 📄 models.py                 # Database models
+├── 📄 wsgi.py                   # WSGI entry point
+├── 📄 api_security.py           # API security
+├── 📄 requirements.txt          # Python dependencies
+├── 🐳 Dockerfile                # AMD64 container
+├── 🐳 Dockerfile.arm            # ARM container
+├── 🐳 docker-compose.yml        # Service orchestration
+├── 📄 entrypoint.sh             # Container startup
+└── 📄 gunicorn.conf.py          # Gunicorn configuration
 ```
 
-## 🚀 Schnellstart
+## 🚀 Quick start (prebuilt Docker images)
 
-### Methode 1: Mit fertigen Docker Images (empfohlen)
-
-#### 1. Docker Images verwenden
-
-Es stehen vorgefertigte Docker Images zur Verfügung, die automatisch via GitHub Actions gebaut werden:
+Prebuilt images are available and built via GitHub Actions:
 
 **Docker Hub**:
 ```bash
-# Produktionsversion (latest)
+# Production (latest)
 docker pull timbobn/schulbuddy:latest
 
-# Entwicklungsversion
+# Development
 docker pull timbobn/schulbuddy:dev
 
-# Spezifische Version
+# Specific version
 docker pull timbobn/schulbuddy:v1.2.3
 ```
 
 **GitHub Container Registry (GHCR)**:
 ```bash
-# Produktionsversion (latest)
+# Production (latest)
 docker pull ghcr.io/timbobn/schulbuddy:latest
 
-# Entwicklungsversion
+# Development
 docker pull ghcr.io/timbobn/schulbuddy:dev
 
-# Spezifische Version
+# Specific version
 docker pull ghcr.io/timbobn/schulbuddy:v1.2.3
 ```
 
-#### 2. docker-compose.yml herunterladen
+#### 2. Download docker-compose.yml
 
 ```bash
-# Eine einzelne Datei mit curl herunterladen
+# Download a single file via curl
 curl -O https://raw.githubusercontent.com/TimBoBN/schulbuddy/main/docker-compose.yml
 
-# Oder das Repository klonen für alle Konfigurationen
-
+# Or clone the repository for all configs
 git clone https://github.com/TimBoBN/schulbuddy.git
 cd schulbuddy
 ```
 
-#### 3. Anwendung starten
+#### 3. Start the app
 
 ```bash
-# Produktionsversion
+# Production
 TAG=latest docker-compose up -d
 
-# Entwicklungsversion
+# Development
 TAG=dev docker-compose up -d
 
-# Spezifische Version
+# Specific version
 TAG=v1.2.3 docker-compose up -d
 
-# Für GHCR image: Zeile in docker-compose.yml anpassen
+# For GHCR image: adjust the line in docker-compose.yml
 ```
 
-### Methode 2: Lokaler Build
+### Method 2: Local build
 
-#### 1. Repository klonen
+#### 1. Clone repository
 ```bash
 git clone https://github.com/TimBoBN/schulbuddy.git
 cd schulbuddy
 ```
 
-#### 2. Umgebung konfigurieren
+#### 2. Configure environment
 ```bash
 # Windows
 .\scripts\setup-env.ps1
@@ -242,258 +193,258 @@ cd schulbuddy
 bash scripts/setup-env.sh
 ```
 
-#### 3. Anwendung bauen und starten
+#### 3. Build and start
 ```bash
-# Mit Makefile (empfohlen)
+# With Makefile (recommended)
 make install
 
-# Oder manuell
+# Or manually
 docker-compose up --build -d
 ```
 
-### 4. Anwendung aufrufen
-- Öffne deinen Browser
-- Gehe zu `http://localhost:5000` (oder deinen konfigurierten Port)
-- Standard-Login: admin / schulbuddy (bitte ändern!)
+### 4. Open the app
+- Open your browser
+- Go to `http://localhost:5000` (or your configured port)
+- Default login: admin / schulbuddy (please change!)
 
-## 🛠️ Verfügbare Befehle
+## 🛠️ Available make targets
 
 ```bash
-make help         # Zeige alle verfügbaren Befehle
-make setup        # Konfiguriere Umgebungsvariablen
-make build        # Baue Docker Images
-make start        # Starte Services
-make stop         # Stoppe Services
-make restart      # Neustart der Services
-make logs         # Zeige Logs
-make status       # Zeige Service-Status
-make clean        # Lösche Container und Volumes
-make install      # Vollständige Installation
-make update       # Update auf neueste Version
+make help         # Show available commands
+make setup        # Configure environment variables
+make build        # Build Docker images
+make start        # Start services
+make stop         # Stop services
+make restart      # Restart services
+make logs         # Show logs
+make status       # Show service status
+make clean        # Remove containers and volumes
+make install      # Full installation
+make update       # Update to latest version
 ```
 
-## ⚙️ Konfiguration
+## ⚙️ Configuration
 
-### Umgebungsvariablen (.env)
+### Environment variables (.env)
 
 ```env
-# Docker Image Konfiguration
-TAG=latest  # latest (Produktion), dev (Entwicklung), v1.2.3 (spezifische Version)
+# Docker image configuration
+TAG=latest  # latest (production), dev (development), v1.2.3 (specific version)
 
-# Server-Konfiguration
+# Server configuration
 HOST=0.0.0.0
 PORT=5000
 EXTERNAL_PORT=5000
 
-# Flask-Konfiguration
+# Flask configuration
 FLASK_ENV=production
 SECRET_KEY=your-secret-key
 DOCKER_ENV=1
 
-# Datenbank
+# Database
 DATABASE_URL=sqlite:////app/data/schulbuddy.db
 
-# Sicherheit
+# Security
 SESSION_TIMEOUT_MINUTES=120
 REMEMBER_COOKIE_DAYS=30
 LOGIN_TIMEOUT_MINUTES=60
 MAX_LOGIN_ATTEMPTS=5
 LOGIN_ATTEMPT_TIMEOUT_MINUTES=15
 
-# Schuljahr-Konfiguration
+# School year configuration
 CURRENT_SCHOOL_YEAR=2025/26
 CURRENT_SEMESTER=1
 ```
 
-### Port-Konfiguration
+### Port configuration
 
-Die Anwendung unterstützt flexible Port-Konfiguration:
+The app supports flexible port configuration:
 
-- `PORT`: Interner Container-Port (Standard: 5000)
-- `EXTERNAL_PORT`: Externer Port für den Zugriff (Standard: gleich PORT)
-- `HOST`: Bind-Adresse (Standard: 0.0.0.0)
+- `PORT`: Internal container port (default: 5000)
+- `EXTERNAL_PORT`: External port for access (default: same as PORT)
+- `HOST`: Bind address (default: 0.0.0.0)
 
-### Docker-Image-Varianten
+### Docker image variants
 
-- **latest**: Produktions-/Stable-Version (main-Branch)
-- **dev**: Entwicklungsversion mit neuesten Features (dev-Branch)
-- **vX.Y.Z**: Spezifische Versionen (Tags)
+- **latest**: Production/stable (main branch)
+- **dev**: Development with latest features (dev branch)
+- **vX.Y.Z**: Specific versions (tags)
 
-### Unterstützte Architekturen
+### Supported architectures
 
-Alle unsere Docker Images unterstützen folgende Plattformen:
+All images support the following platforms:
 - **linux/amd64**: Standard x86_64 (Intel/AMD)
-- **linux/arm64**: 64-bit ARM (z.B. Apple Silicon, Raspberry Pi 4 64-bit)
-- **linux/arm/v7**: 32-bit ARM (z.B. Raspberry Pi 2/3)
+- **linux/arm64**: 64-bit ARM (e.g. Apple Silicon, Raspberry Pi 4 64-bit)
+- **linux/arm/v7**: 32-bit ARM (e.g. Raspberry Pi 2/3)
 
-## 📖 Erweiterte Dokumentation
+## 📖 Extended documentation
 
-- [🔒 Sicherheitsrichtlinie & CVE-Übersicht](docs/SECURITY.md)
-- [🐳 Docker-Anleitung](docs/DOCKER_README.md)
-- [🏠 Vollständige Dokumentation](docs/INDEX.md)
+- [🔒 Security policy & CVE overview](SECURITY.md)
+- [🐳 Docker guide](docs/DOCKER_README.md)
+- [🏠 Full documentation](docs/INDEX.md)
 
-## 🔧 Entwicklung
+## 🔧 Development
 
-### Lokale Entwicklung
+### Local development
 ```bash
-# Python Virtual Environment erstellen
+# Create virtual environment
 python -m venv .venv
 source .venv/bin/activate  # Linux/Mac
 .venv\Scripts\activate     # Windows
 
-# Abhängigkeiten installieren
+# Install dependencies
 pip install -r requirements.txt
 
-# Datenbank initialisieren
+# Initialize database
 python init_db.py
 python init_school_settings.py
 
-# Entwicklungsserver starten
+# Start dev server
 python app.py
 ```
 
-### Docker Development
+### Docker development
 ```bash
-# Development Image verwenden
+# Use development image
 TAG=dev docker-compose up -d
 
-# Oder lokalen Build für Entwicklung verwenden
+# Or local build for development
 docker-compose -f docker-compose.yml up --build -d
 
-# Logs verfolgen
+# Follow logs
 docker-compose logs -f schulbuddy
 ```
 
-### Kontinuierliche Integration/Deployment
+### Continuous Integration/Deployment
 
-Das Projekt verwendet GitHub Actions für automatisierte Builds und Deployment:
+This project uses GitHub Actions for automated builds and deployments:
 
-- **Docker Hub Publish**: Baut und veröffentlicht Images bei Änderungen an `main`, `dev` oder bei Tag-Pushes
-- **GHCR Publish**: Baut und veröffentlicht Images in der GitHub Container Registry
+- **Docker Hub Publish**: Builds and publishes images on changes to `main`, `dev`, or tag pushes
+- **GHCR Publish**: Builds and publishes images to GitHub Container Registry
 
-Die Workflows sind so konfiguriert, dass:
-- Pushes zum `main`-Branch den `latest` Tag aktualisieren
-- Pushes zum `dev`-Branch den `dev` Tag aktualisieren
-- Tag-Pushes (v*) entsprechende Versions-Tags erstellen
+Workflows are configured so that:
+- Pushes to `main` update the `latest` tag
+- Pushes to `dev` update the `dev` tag
+- Tag pushes (v*) create corresponding version tags
 
-## 🗄️ Datenbank
+## 🗄️ Database
 
-- **Typ**: SQLite
-- **Lokation**: `instance/schulbuddy.db` (lokal) oder `/app/data/schulbuddy.db` (Docker)
-- **Persistenz**: Docker Volumes sorgen für Datenpersistenz
-- **Backup**: Automatische Volume-Sicherung möglich
-- **Initialisierung**: Automatisch beim ersten Start des Containers
+- **Type**: SQLite
+- **Location**: `instance/schulbuddy.db` (local) or `/app/data/schulbuddy.db` (Docker)
+- **Persistence**: Docker volumes ensure data persistence
+- **Backups**: Volume backups possible
+- **Initialization**: Automatic on first container start
 
-## 🔒 Sicherheit
+## 🔒 Security
 
-- **Sichere Session-Verwaltung**: Konfigurierbare Session-Timeouts
-- **Passwort-Hashing**: Sichere Hashing-Algorithmen für Passwörter
-- **2FA-Unterstützung**: Zwei-Faktor-Authentifizierung mit TOTP
-- **Backup-Codes**: Fallback bei Geräteverlust
-- **API-Schlüssel**: Sichere API-Authentifizierung mit individuellen Tokens
-- **Rate Limiting**: Schutz vor Brute-Force-Angriffen
-- **CSRF-Schutz**: Integrierter Schutz gegen Cross-Site Request Forgery
-- **Regelmäßige Sicherheitsupdates**: Automatische CVE-Überwachung und Abhängigkeits-Updates
-- **Container-Sicherheit**: Least-Privilege-Prinzip, non-root User, minimierte Angriffsfläche
-- **Schwachstellenmanagement**: Dokumentierte Risikobewertung für nicht-fixbare CVEs in [SECURITY.md](SECURITY.md)
+- **Secure session management**: configurable timeouts
+- **Password hashing**: secure hashing algorithms
+- **2FA support**: TOTP-based two-factor authentication
+- **Backup codes**: fallback for device loss
+- **API keys**: secure API authentication with individual tokens
+- **Rate limiting**: protection against brute-force attacks
+- **CSRF protection**: built-in cross-site request forgery protection
+- **Regular security updates**: automatic CVE monitoring and dependency updates
+- **Container security**: least-privilege, non-root user, minimized attack surface
+- **Vulnerability management**: documented risk assessment for non-fixable CVEs in [SECURITY.md](SECURITY.md)
 
 ## 🚀 Deployment
 
-### Produktionsdeployment
+### Production deployment
 ```bash
-# Schnellstart mit fertigen Images
+# Quick start with prebuilt images
 curl -O https://raw.githubusercontent.com/TimBoBN/schulbuddy/main/docker-compose.yml
 curl -O https://raw.githubusercontent.com/TimBoBN/schulbuddy/main/config/.env.example
 mv .env.example .env
-# .env Datei anpassen
+# adjust .env
 
-# Services starten
+# Start services
 TAG=latest docker-compose up -d
 
-# Optional: Nginx Reverse Proxy
+# Optional: Nginx reverse proxy
 TAG=latest docker-compose --profile nginx up -d
 ```
 
-### Bereitstellungsoptionen
+### Deployment options
 
-1. **Standalone Docker**: Einfache Installation mit Docker Compose
-2. **Kubernetes**: Kubernetes-Deployment mit Helm Charts (siehe `/k8s`)
-3. **Platform-as-a-Service**: Vorgefertigte Docker-Images für Plattformen wie Heroku oder Render
+1. **Standalone Docker**: simple install with Docker Compose
+2. **Platform-as-a-Service**: prebuilt images for platforms like Heroku or Render
+3. **Kubernetes**: deploy using Helm charts or Kubernetes manifests for scalable, production-grade environments
 
 ### Monitoring
 ```bash
-# Service-Status prüfen
+# Check service status
 make status
 
-# Logs anzeigen
+# Show logs
 make logs
 
-# Ressourcenverbrauch
+# Resource usage
 docker stats schulbuddy-app
 
-# Health-Check
+# Health check
 curl http://localhost:5000/health
 ```
 
-### Docker Health-Checks
+### Docker health checks
 
-Das Image enthält eingebaute Health-Checks, die automatisch den Status der Anwendung überwachen und bei Problemen Neustarts auslösen können.
+The image contains built-in health checks that monitor the application and can trigger restarts on issues.
 
-## 🔄 Updates und Versionen
+## 🔄 Updates and versions
 
-### Versionshistorie
+### Version history
 
-- **v1.3.0** (August 2025): Container-Registry-Support, Sicherheitsverbesserungen
-- **v1.2.0** (Juli 2025): Automatisierte CI/CD-Pipeline, Schuljahreswechsel
-- **v1.1.0** (Mai 2025): Statistik-Modul, Export-Funktionen
-- **v1.0.0** (März 2025): Erste stabile Veröffentlichung
+- **v1.3.0** (August 2025): container registry support, security improvements
+- **v1.2.0** (July 2025): automated CI/CD pipeline, school year changeover
+- **v1.1.0** (May 2025): statistics module, export features
+- **v1.0.0** (March 2025): first stable release
 
-### Aktualisierung
+### Update
 
 ```bash
-# Für Docker-Hub-Installation
+# For Docker Hub installations
 docker-compose pull
 docker-compose up -d
 
-# Oder mit spezifischem Tag
+# Or with a specific tag
 TAG=v1.3.0 docker-compose up -d
 ```
 
-## 📝 Lizenz
+## 📝 License
 
-Dieses Projekt steht unter der MIT-Lizenz - siehe [LICENSE](LICENSE) für Details.
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
-## 🤝 Beitrag leisten
+## 🤝 Contributing
 
-1. Fork das Repository
-2. Erstelle einen Feature-Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit deine Änderungen (`git commit -m 'Add some AmazingFeature'`)
-4. Push zum Branch (`git push origin feature/AmazingFeature`)
-5. Öffne eine Pull Request
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-Jeder Beitrag wird geschätzt!
+Contributions are welcome!
 
 ## 📞 Support
 
-Bei Fragen oder Problemen:
+For questions or issues:
 
-1. **Vollständige Dokumentation**: [docs/INDEX.md](docs/INDEX.md)
-2. **Multi-Architecture Guide**: [docs/MULTI-ARCH-README.md](docs/MULTI-ARCH-README.md)
-3. **Docker Setup**: [docs/DOCKER_README.md](docs/DOCKER_README.md)
-4. **Sicherheit**: [docs/SECURITY.md](docs/SECURITY.md)
-5. **ARM Support**: [docs/ARM_SUPPORT.md](docs/ARM_SUPPORT.md)
+1. **Full documentation**: [docs/INDEX.md](docs/INDEX.md)
+2. **Multi-architecture guide**: [docs/MULTI-ARCH-README.md](docs/MULTI-ARCH-README.md)
+3. **Docker setup**: [docs/DOCKER_README.md](docs/DOCKER_README.md)
+4. **Security**: [docs/SECURITY.md](docs/SECURITY.md)
+5. **ARM support**: [docs/ARM_SUPPORT.md](docs/ARM_SUPPORT.md)
 6. **GitHub Issues**: [Issues](../../issues)
 
-## 📚 Dokumentationsübersicht
+## 📚 Documentation overview
 
-| Thema | Datei | Beschreibung |
-|-------|-------|--------------|
-| 🏠 **Hauptindex** | [docs/INDEX.md](docs/INDEX.md) | Übersicht aller Dokumentation |
-| 🏗️ **Multi-Arch** | [docs/MULTI-ARCH-README.md](docs/MULTI-ARCH-README.md) | AMD64 & ARM Support |
-| 🐳 **Docker Setup** | [docs/DOCKER_README.md](docs/DOCKER_README.md) | Detaillierte Installation |
-| 🛡️ **Sicherheit** | [docs/SECURITY.md](docs/SECURITY.md) | Sicherheitsrichtlinien |
-| 🔋 **ARM Support** | [docs/ARM_SUPPORT.md](docs/ARM_SUPPORT.md) | Raspberry Pi & Apple Silicon |
+| Topic | File | Description |
+|-------|------|-------------|
+| 🏠 **Main index** | [docs/INDEX.md](docs/INDEX.md) | Overview of all docs |
+| 🏗️ **Multi-Arch** | [docs/MULTI-ARCH-README.md](docs/MULTI-ARCH-README.md) | AMD64 & ARM support |
+| 🐳 **Docker setup** | [docs/DOCKER_README.md](docs/DOCKER_README.md) | Detailed installation |
+| 🛡️ **Security** | [docs/SECURITY.md](docs/SECURITY.md) | Security guidelines |
+| 🔋 **ARM support** | [docs/ARM_SUPPORT.md](docs/ARM_SUPPORT.md) | Raspberry Pi & Apple Silicon |
 
 ---
 
-*Erstellt mit ❤️ für eine bessere Schulverwaltung*
+*Built with ❤️ for better school management*
