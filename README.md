@@ -369,7 +369,7 @@ TAG=latest docker-compose --profile nginx up -d
 
 1. **Standalone Docker**: simple install with Docker Compose
 2. **Platform-as-a-Service**: prebuilt images for platforms like Heroku or Render
-3. **Platform-as-a-Service**: prebuilt images for platforms like Heroku or Render
+3. **Kubernetes**: deploy using Helm charts or Kubernetes manifests for scalable, production-grade environments
 
 ### Monitoring
 ```bash
