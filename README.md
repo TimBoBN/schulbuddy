@@ -3,9 +3,6 @@
 A modern school management system with Docker support for easy deployment on AMD64 and ARM systems.
 
 [![Docker Multi-Platform Build](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-multiplatform.yml/badge.svg)](https://github.com/TimBoBN/schulbuddy/actions/workflows/docker-multiplatform.yml)
-# 🎓 SchulBuddy - Multi-Architecture Docker Edition (English)
-
-A modern school management system with Docker support for easy deployment on AMD64 and ARM systems.
 
 ## 🚀 Quick Start
 
